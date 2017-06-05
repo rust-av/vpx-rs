@@ -1,0 +1,22 @@
+[package]
+name = "libvpx"
+version = "0.1.0"
+authors = ["Luca Barbato <lu_zero@gentoo.org>"]
+license = "MIT"
+description = "libvpx bindings"
+repository = "https://github.com/rust-av/vpx-rs"
+readme = "README.md"
+keywords = ["x264","h264"]
+
+[dependencies]
+vpx-sys = { version = "0.1.0", path = "vpx-sys" }
+
+[workspace]
+members = ["vpx-sys"]
+
+[[example]]
+name = "encode"
+path = "examples/encode.rs"
+
+[dev-dependencies]
+regex ="0.2"
