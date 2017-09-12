@@ -31,12 +31,15 @@ fn common_builder() -> bindgen::Builder {
 
 fn main() {
     let libs = metadeps::probe().unwrap();
-    // TODO pass include paths to bindgen
-    // let headers = libs.get("vpx").unwrap().include_paths.clone();
-    let buildver = libs.get("vpx").unwrap().version.split(".").nth(1).unwrap();
+    let headers = libs.get("vpx").unwrap().include_paths.clone();
+    // let buildver = libs.get("vpx").unwrap().version.split(".").nth(1).unwrap();
 
-    let builder = common_builder()
+    let mut builder = common_builder()
         .header("data/vpx.h");
+
+    for header in headers {
+        builder = builder.clang_arg("-I").clang_arg(header.to_str().unwrap());
+    }
 
     // Manually fix the comment so rustdoc won't try to pick them
     format_write(builder, "src/vpx.rs");
