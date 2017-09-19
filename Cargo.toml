@@ -10,6 +10,7 @@ keywords = ["x264","h264"]
 
 [dependencies]
 vpx-sys = { version = "0.1.0", path = "vpx-sys" }
+av-data = { version = "0.1.0", path = "../rust-av/data" }
 
 [workspace]
 members = ["vpx-sys"]
