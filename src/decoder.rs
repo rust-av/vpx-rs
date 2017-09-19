@@ -1,12 +1,13 @@
+use common::VPXCodec;
 use ffi::vpx::*;
 
-use std::ffi::CStr;
 use std::mem::{ uninitialized, zeroed };
 use std::mem;
 use std::ptr::null_mut;
 use std::rc::Rc;
 
-use data::frame:: { Frame, MediaKind, VideoInfo, new_default_frame };
+use data::frame:: { Frame, MediaKind, VideoInfo };
+use data::frame:: { PictureType, new_default_frame };
 use data::pixel::formats::YUV420;
 
 pub struct VP9Decoder {
@@ -23,6 +24,7 @@ fn frame_from_img(img : vpx_image_t) -> Frame {
         _ => panic!("TODO: support more pixel formats")
     };
     let v = VideoInfo {
+        pic_type: PictureType::UNKNOWN,
         width: img.d_w as usize,
         height: img.d_h as usize,
         format: Rc::new(*f)
@@ -52,14 +54,6 @@ impl VP9Decoder {
         match ret {
             VPX_CODEC_OK => Ok(dec),
             _ => Err(ret),
-        }
-    }
-
-    pub fn error_to_str(&mut self) -> String {
-        unsafe {
-            let c_str = vpx_codec_error(&mut self.ctx);
-
-            CStr::from_ptr(c_str).to_string_lossy().into_owned()
         }
     }
 
@@ -98,6 +92,13 @@ impl Drop for VP9Decoder {
          unsafe { vpx_codec_destroy(&mut self.ctx) };
     }
 }
+
+impl VPXCodec for VP9Decoder {
+    fn get_context<'a>(&'a mut self) -> &'a mut vpx_codec_ctx {
+        &mut self.ctx
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
