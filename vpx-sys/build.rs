@@ -5,7 +5,8 @@ use std::fs::OpenOptions;
 use std::io::Write;
 
 fn format_write(builder: bindgen::Builder, output: &str) {
-    let s = builder.generate()
+    let s = builder
+        .generate()
         .unwrap()
         .to_string()
         .replace("/**", "/*")
@@ -34,8 +35,7 @@ fn main() {
     let headers = libs.get("vpx").unwrap().include_paths.clone();
     // let buildver = libs.get("vpx").unwrap().version.split(".").nth(1).unwrap();
 
-    let mut builder = common_builder()
-        .header("data/vpx.h");
+    let mut builder = common_builder().header("data/vpx.h");
 
     for header in headers {
         builder = builder.clang_arg("-I").clang_arg(header.to_str().unwrap());
