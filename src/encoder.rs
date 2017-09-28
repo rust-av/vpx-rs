@@ -2,12 +2,80 @@ use common::VPXCodec;
 use ffi::vpx::*;
 
 use std::mem;
+use std::ptr;
 
-use data::frame::{Frame, MediaKind};
+use data::frame::{ Frame, MediaKind };
 use data::pixel::Formaton;
 use data::pixel::formats::YUV420;
+use data::packet::Packet;
 
 use self::vpx_codec_err_t::*;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PSNR {
+    pub samples: [u32; 4],
+    pub sse: [u64; 4],
+    pub psnr: [f64; 4],
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum VPXPacket {
+    Packet(Packet),
+    Stats(Vec<u8>),
+    MBStats(Vec<u8>),
+    PSNR(PSNR),
+    Custom(Vec<u8>),
+}
+
+fn to_buffer(buf: vpx_fixed_buf_t) -> Vec<u8> {
+    let mut v : Vec<u8> = Vec::with_capacity(buf.sz);
+    unsafe {
+        ptr::copy_nonoverlapping(mem::transmute(buf.buf), v.as_mut_ptr(), buf.sz);
+        v.set_len(buf.sz);
+    }
+    v
+}
+
+impl VPXPacket {
+    fn new(pkt: vpx_codec_cx_pkt) -> VPXPacket {
+        use self::vpx_codec_cx_pkt_kind::*;
+        match pkt.kind {
+            VPX_CODEC_CX_FRAME_PKT => {
+                let f = unsafe { pkt.data.frame };
+                let mut p = Packet::with_capacity(f.sz);
+                unsafe {
+                    ptr::copy_nonoverlapping(mem::transmute(f.buf), p.data.as_mut_ptr(), f.sz);
+                    p.data.set_len(f.sz);
+                }
+                p.pts = Some(f.pts);
+                p.is_key = (f.flags & VPX_FRAME_IS_KEY) != 0;
+
+                VPXPacket::Packet(p)
+            },
+            VPX_CODEC_STATS_PKT => {
+                let b = to_buffer(unsafe { pkt.data.twopass_stats });
+                VPXPacket::Stats(b)
+            },
+            VPX_CODEC_FPMB_STATS_PKT => {
+                let b = to_buffer(unsafe { pkt.data.firstpass_mb_stats });
+                VPXPacket::MBStats(b)
+            },
+            VPX_CODEC_PSNR_PKT => {
+                let p = unsafe { pkt.data.psnr };
+
+                VPXPacket::PSNR(PSNR {
+                    samples: p.samples,
+                    sse: p.sse,
+                    psnr: p.psnr
+                })
+            },
+            VPX_CODEC_CUSTOM_PKT => {
+                let b = to_buffer(unsafe { pkt.data.raw });
+                VPXPacket::Custom(b)
+            }
+        }
+    }
+}
 
 pub struct VP9EncoderConfig {
     pub cfg: vpx_codec_enc_cfg,
@@ -63,6 +131,7 @@ impl VP9EncoderConfig {
 
 pub struct VP9Encoder {
     ctx: vpx_codec_ctx_t,
+    iter : vpx_codec_iter_t,
 }
 
 impl VP9Encoder {
@@ -79,7 +148,7 @@ impl VP9Encoder {
         };
 
         match ret {
-            VPX_CODEC_OK => Ok(VP9Encoder { ctx: ctx }),
+            VPX_CODEC_OK => Ok(VP9Encoder { ctx: ctx, iter: ptr::null() }),
             _ => Err(ret),
         }
     }
@@ -94,8 +163,8 @@ impl VP9Encoder {
     }
 
     // TODO: Cache the image information
-    pub fn encode(&mut self, frame: Frame) -> Result<(), vpx_codec_err_t> {
-        let mut img = img_from_frame(&frame);
+    pub fn encode(&mut self, frame: &Frame) -> Result<(), vpx_codec_err_t> {
+        let mut img = img_from_frame(frame);
 
         let ret = unsafe {
             vpx_codec_encode(
@@ -108,13 +177,25 @@ impl VP9Encoder {
             )
         };
 
+        self.iter = ptr::null();
+
         match ret {
             VPX_CODEC_OK => Ok(()),
             _ => Err(ret),
         }
     }
 
-    pub fn get_packet() {}
+    pub fn get_packet(&mut self) -> Option<VPXPacket> {
+        let pkt = unsafe {
+            vpx_codec_get_cx_data(&mut self.ctx, &mut self.iter)
+        };
+
+        if pkt.is_null() {
+            None
+        } else {
+            Some(VPXPacket::new(unsafe { *pkt }))
+        }
+    }
 }
 
 impl Drop for VP9Encoder {
@@ -183,15 +264,12 @@ mod tests {
         c.cfg.g_h = h;
         c.cfg.g_timebase.num = *t.timebase.numer();
         c.cfg.g_timebase.den = *t.timebase.denom();
+        c.cfg.g_threads = 4;
+        c.cfg.g_pass = vpx_enc_pass::VPX_RC_ONE_PASS;
+        c.cfg.rc_end_usage = vpx_rc_mode::VPX_CQ;
 
         let mut e = c.get_encoder().unwrap();
-        // should fail VP8-only
-        let ret = e.control(VP8E_SET_TOKEN_PARTITIONS, 4);
-        if let Err(err) = ret {
-            println!("Ok {:?} {}", err, e.error_to_str());
-        } else {
-            panic!("It should fail.");
-        }
+
         // should work common control
         e.control(VP8E_SET_CQ_LEVEL, 4).unwrap();
 
@@ -204,7 +282,28 @@ mod tests {
 
         let mut f = new_default_frame(&MediaKind::Video(v), Some(t));
 
+        let mut out = 0;
         // TODO write some pattern
-        e.encode(f).unwrap();
+        for i in 0..100 {
+            e.encode(&f).unwrap();
+            if let Some(ref mut t) = f.t {
+                t.pts = Some(i);
+            }
+            println!("{:#?}", f);
+            loop {
+                let p = e.get_packet();
+
+                if p.is_none() {
+                    break;
+                } else {
+                    out = 1;
+                    println!("{:#?}", p.unwrap() );
+                }
+            }
+        }
+
+        if out != 1 {
+            panic!("No packet produced");
+        }
     }
 }

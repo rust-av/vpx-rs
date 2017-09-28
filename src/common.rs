@@ -11,3 +11,4 @@ pub trait VPXCodec {
         }
     }
 }
+
