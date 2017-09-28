@@ -3,7 +3,7 @@ use ffi::vpx::*;
 
 use std::mem::{ uninitialized, zeroed };
 use std::mem;
-use std::ptr::null_mut;
+use std::ptr;
 use std::rc::Rc;
 
 use data::frame:: { Frame, MediaKind, VideoInfo };
@@ -12,7 +12,7 @@ use data::pixel::formats::YUV420;
 
 pub struct VP9Decoder {
     ctx : vpx_codec_ctx,
-    iter : *mut vpx_codec_iter_t
+    iter : vpx_codec_iter_t
 }
 
 use self::vpx_codec_err_t::*;
@@ -43,7 +43,7 @@ impl VP9Decoder {
     pub fn new() -> Result<VP9Decoder, vpx_codec_err_t> {
         let mut dec = VP9Decoder {
             ctx: unsafe { uninitialized() },
-            iter: null_mut() };
+            iter: ptr::null() };
         let cfg = unsafe { zeroed() };
 
         let ret = unsafe { vpx_codec_dec_init_ver(&mut dec.ctx as *mut vpx_codec_ctx,
@@ -61,12 +61,12 @@ impl VP9Decoder {
         let ret = unsafe {
             vpx_codec_decode(&mut self.ctx, data.as_ptr(),
                             data.len() as u32,
-                            null_mut(),
+                            ptr::null_mut(),
                             0)
         };
 
         // Safety measure to not call get_frame on an invalid iterator
-        self.iter = null_mut();
+        self.iter = ptr::null();
 
         match ret {
             VPX_CODEC_OK => Ok(()),
@@ -75,7 +75,7 @@ impl VP9Decoder {
     }
 
     pub fn get_frame(&mut self) -> Option<Frame> {
-        let img = unsafe { vpx_codec_get_frame(&mut self.ctx, self.iter) };
+        let img = unsafe { vpx_codec_get_frame(&mut self.ctx, &mut self.iter) };
         mem::forget(img);
 
         if img.is_null() {
