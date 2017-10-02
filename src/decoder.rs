@@ -118,8 +118,55 @@ mod tests {
         println!("{}", d.error_to_str());
     }
 
+    use super::super::encoder::tests as enc;
+    use super::super::encoder::VPXPacket;
+    use data::timeinfo::TimeInfo;
+    use data::rational::*;
     #[test]
     fn decode() {
+        let w = 800;
+        let h = 600;
 
+        let t = TimeInfo {
+            pts: Some(0),
+            dts: Some(0),
+            duration: Some(1),
+            timebase: Rational32::new(1, 1000),
+        };
+
+        let mut e = enc::setup(w, h, &t);
+        let mut f = enc::setup_frame(w, h, &t);
+
+        let mut d = VP9Decoder::new().unwrap();
+        let mut out = 0;
+
+        for i in 0..100 {
+            e.encode(&f).unwrap();
+            if let Some(ref mut t) = f.t {
+                t.pts = Some(i);
+            }
+            println!("{:#?}", f);
+            loop {
+                let p = e.get_packet();
+
+                if p.is_none() {
+                    break;
+                } else {
+                    if let VPXPacket::Packet(ref pkt) = p.unwrap() {
+                        let _ = d.decode(&pkt.data).unwrap();
+
+                        // No multiframe expected.
+                        if let Some(f) = d.get_frame() {
+                            out = 1;
+                            println!("{:#?}", f);
+                        }
+                    }
+                }
+            }
+        }
+
+        if out != 1 {
+            panic!("No frame decoded");
+        }
     }
 }
