@@ -4,7 +4,7 @@ use ffi::vpx::*;
 use std::mem;
 use std::ptr;
 
-use data::frame::{ Frame, MediaKind };
+use data::frame::{Frame, MediaKind};
 use data::pixel::Formaton;
 use data::pixel::formats::YUV420;
 use data::packet::Packet;
@@ -28,7 +28,7 @@ pub enum VPXPacket {
 }
 
 fn to_buffer(buf: vpx_fixed_buf_t) -> Vec<u8> {
-    let mut v : Vec<u8> = Vec::with_capacity(buf.sz);
+    let mut v: Vec<u8> = Vec::with_capacity(buf.sz);
     unsafe {
         ptr::copy_nonoverlapping(mem::transmute(buf.buf), v.as_mut_ptr(), buf.sz);
         v.set_len(buf.sz);
@@ -51,24 +51,24 @@ impl VPXPacket {
                 p.is_key = (f.flags & VPX_FRAME_IS_KEY) != 0;
 
                 VPXPacket::Packet(p)
-            },
+            }
             VPX_CODEC_STATS_PKT => {
                 let b = to_buffer(unsafe { pkt.data.twopass_stats });
                 VPXPacket::Stats(b)
-            },
+            }
             VPX_CODEC_FPMB_STATS_PKT => {
                 let b = to_buffer(unsafe { pkt.data.firstpass_mb_stats });
                 VPXPacket::MBStats(b)
-            },
+            }
             VPX_CODEC_PSNR_PKT => {
                 let p = unsafe { pkt.data.psnr };
 
                 VPXPacket::PSNR(PSNR {
                     samples: p.samples,
                     sse: p.sse,
-                    psnr: p.psnr
+                    psnr: p.psnr,
                 })
-            },
+            }
             VPX_CODEC_CUSTOM_PKT => {
                 let b = to_buffer(unsafe { pkt.data.raw });
                 VPXPacket::Custom(b)
@@ -131,7 +131,7 @@ impl VP9EncoderConfig {
 
 pub struct VP9Encoder {
     ctx: vpx_codec_ctx_t,
-    iter : vpx_codec_iter_t,
+    iter: vpx_codec_iter_t,
 }
 
 impl VP9Encoder {
@@ -148,7 +148,10 @@ impl VP9Encoder {
         };
 
         match ret {
-            VPX_CODEC_OK => Ok(VP9Encoder { ctx: ctx, iter: ptr::null() }),
+            VPX_CODEC_OK => Ok(VP9Encoder {
+                ctx: ctx,
+                iter: ptr::null(),
+            }),
             _ => Err(ret),
         }
     }
@@ -186,9 +189,7 @@ impl VP9Encoder {
     }
 
     pub fn get_packet(&mut self) -> Option<VPXPacket> {
-        let pkt = unsafe {
-            vpx_codec_get_cx_data(&mut self.ctx, &mut self.iter)
-        };
+        let pkt = unsafe { vpx_codec_get_cx_data(&mut self.ctx, &mut self.iter) };
 
         if pkt.is_null() {
             None
@@ -297,7 +298,7 @@ mod tests {
                     break;
                 } else {
                     out = 1;
-                    println!("{:#?}", p.unwrap() );
+                    println!("{:#?}", p.unwrap());
                 }
             }
         }
