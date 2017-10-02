@@ -212,7 +212,7 @@ impl VPXCodec for VP9Encoder {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     #[test]
     fn init() {
@@ -242,24 +242,10 @@ mod tests {
         // should work common control
         e.control(VP8E_SET_CQ_LEVEL, 4).unwrap();
     }
-    #[test]
-    fn encode() {
-        use data::frame::*;
-        use data::pixel::formats;
-        use data::timeinfo::TimeInfo;
-        use data::rational::*;
-        use std::rc::Rc;
 
-        let w = 200;
-        let h = 200;
-
-        let t = TimeInfo {
-            pts: Some(0),
-            dts: Some(0),
-            duration: Some(1),
-            timebase: Rational32::new(1, 1000),
-        };
-
+    use data::timeinfo::TimeInfo;
+    use data::rational::*;
+    pub fn setup(w: u32, h: u32, t: &TimeInfo) -> VP9Encoder {
         let mut c = VP9EncoderConfig::new().unwrap();
         c.cfg.g_w = w;
         c.cfg.g_h = h;
@@ -271,8 +257,15 @@ mod tests {
 
         let mut e = c.get_encoder().unwrap();
 
-        // should work common control
         e.control(VP8E_SET_CQ_LEVEL, 4).unwrap();
+
+        e
+    }
+
+    pub fn setup_frame(w: u32, h: u32, t: &TimeInfo) -> Frame {
+        use data::pixel::formats;
+        use data::frame::*;
+        use std::rc::Rc;
 
         let v = VideoInfo {
             pic_type: PictureType::UNKNOWN,
@@ -281,7 +274,23 @@ mod tests {
             format: Rc::new(*formats::YUV420),
         };
 
-        let mut f = new_default_frame(&MediaKind::Video(v), Some(t));
+        new_default_frame(&MediaKind::Video(v), Some(*t))
+    }
+
+    #[test]
+    fn encode() {
+        let w = 200;
+        let h = 200;
+
+        let t = TimeInfo {
+            pts: Some(0),
+            dts: Some(0),
+            duration: Some(1),
+            timebase: Rational32::new(1, 1000),
+        };
+
+        let mut e = setup(w, h, &t);
+        let mut f = setup_frame(w, h, &t);
 
         let mut out = 0;
         // TODO write some pattern
