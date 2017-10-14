@@ -130,8 +130,8 @@ impl VP9EncoderConfig {
 }
 
 pub struct VP9Encoder {
-    ctx: vpx_codec_ctx_t,
-    iter: vpx_codec_iter_t,
+    pub(crate) ctx: vpx_codec_ctx_t,
+    pub(crate) iter: vpx_codec_iter_t,
 }
 
 impl VP9Encoder {
@@ -209,6 +209,90 @@ impl VPXCodec for VP9Encoder {
     fn get_context<'a>(&'a mut self) -> &'a mut vpx_codec_ctx {
         &mut self.ctx
     }
+}
+
+#[cfg(feature="codec-trait")]
+mod encoder_trait {
+    use super::*;
+    use std::rc::Rc;
+    use codec::encoder::*;
+    use codec::error::*;
+    use data::pixel::Formaton;
+    use data::value::Value;
+
+    pub struct Des {
+        descr: Descr,
+    }
+
+    struct Enc {
+        cfg: VP9EncoderConfig,
+        enc: Option<VP9Encoder>,
+    }
+
+    impl Descriptor for Des {
+        fn create(&self) -> Box<Encoder> {
+            Box::new(Enc { cfg: VP9EncoderConfig::new().unwrap(), enc: None })
+        }
+
+        fn describe<'a>(&'a self) -> &'a Descr {
+            &self.descr
+        }
+    }
+
+    impl Encoder for Enc {
+        fn validate(&mut self) -> Result<()> {
+            if self.enc.is_none() {
+                self.cfg.get_encoder().map(|enc| {
+                    self.enc = Some(enc);
+                }).map_err(|_err| ErrorKind::ConfigurationIncomplete.into())
+            } else {
+                unimplemented!()
+            }
+        }
+
+        // TODO: have it as default impl?
+        fn get_extradata(&self) -> Option<Vec<u8>> {
+            None
+        }
+
+        fn send_frame(&mut self, _frame: &Frame) -> Result<()> {
+            unimplemented!()
+        }
+
+        fn receive_packet(&mut self) -> Result<Packet> {
+            let enc = self.enc.as_mut().unwrap();
+
+            if let Some(p) = enc.get_packet() {
+                match p {
+                    VPXPacket::Packet(pkt) => Ok(pkt),
+                    _ => unimplemented!()
+                }
+            } else {
+                Err(ErrorKind::MoreDataNeeded.into())
+            }
+        }
+
+        fn set_option<'a>(&mut self, key: &str, val: Value<'a>) -> Result<()> {
+            match (key, val) {
+                ("w", Value::U64(v)) => self.cfg.cfg.g_w = v as u32,
+                ("h", Value::U64(v)) => self.cfg.cfg.g_h = v as u32,
+                // ("format", Value::Formaton(f)) => self.format = Some(f),
+                    _ => unimplemented!()
+                }
+
+                Ok(())
+            }
+
+        }
+
+        pub const DUMMY_DESCR: &Des = &Des {
+            descr: Descr {
+                codec: "vp9",
+                name: "vpx",
+                desc: "libvpx VP9 encoder",
+                mime: "video/VP9",
+            }
+        };
 }
 
 #[cfg(test)]
