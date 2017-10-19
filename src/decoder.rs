@@ -11,8 +11,8 @@ use data::frame::{PictureType, new_default_frame};
 use data::pixel::formats::YUV420;
 
 pub struct VP9Decoder {
-    ctx: vpx_codec_ctx,
-    iter: vpx_codec_iter_t,
+    pub(crate) ctx: vpx_codec_ctx,
+    pub(crate) iter: vpx_codec_iter_t,
 }
 
 use self::vpx_codec_err_t::*;
@@ -107,6 +107,55 @@ impl VPXCodec for VP9Decoder {
     }
 }
 
+#[cfg(feature="codec-trait")]
+mod decoder_trait {
+    use super::*;
+    use codec::decoder::*;
+    use codec::error::*;
+    use data::packet::Packet;
+    use data::frame::Frame;
+
+    struct Des {
+        descr: Descr,
+    }
+
+    impl Descriptor for Des {
+        fn create(&self) -> Box<Decoder> {
+            Box::new(VP9Decoder::new().unwrap())
+        }
+
+        fn describe<'a>(&'a self) -> &'a Descr {
+            &self.descr
+        }
+    }
+
+    impl Decoder for VP9Decoder {
+        fn set_extradata(&mut self, _extra: &[u8]) {
+            // No-op
+        }
+        fn send_packet(&mut self, pkt: &Packet) -> Result<()> {
+            self.decode(&pkt.data).map_err(|_err| unimplemented!())
+        }
+        fn receive_frame(&mut self) -> Result<Frame> {
+            self.get_frame().ok_or(ErrorKind::MoreDataNeeded.into())
+        }
+        fn reset(&mut self) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    pub const VP9_DESCR: &Descriptor = &Des {
+        descr: Descr {
+            codec: "vp9",
+            name: "vpx",
+            desc: "libvpx VP9 decoder",
+            mime: "video/VP9",
+        },
+    };
+}
+
+#[cfg(feature="codec-trait")]
+pub use self::decoder_trait::VP9_DESCR;
 
 #[cfg(test)]
 mod tests {
