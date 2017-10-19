@@ -6,7 +6,7 @@ license = "MIT"
 description = "libvpx bindings"
 repository = "https://github.com/rust-av/vpx-rs"
 readme = "README.md"
-keywords = ["x264","h264"]
+keywords = ["libvpx","vp9"]
 
 [features]
 codec-trait = ["av-codec"]
