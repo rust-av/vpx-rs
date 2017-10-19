@@ -211,7 +211,7 @@ impl VPXCodec for VP9Encoder {
     }
 }
 
-#[cfg(feature="codec-trait")]
+#[cfg(feature = "codec-trait")]
 mod encoder_trait {
     use super::*;
     use std::rc::Rc;
@@ -220,7 +220,7 @@ mod encoder_trait {
     use data::pixel::Formaton;
     use data::value::Value;
 
-    pub struct Des {
+    struct Des {
         descr: Descr,
     }
 
@@ -231,7 +231,10 @@ mod encoder_trait {
 
     impl Descriptor for Des {
         fn create(&self) -> Box<Encoder> {
-            Box::new(Enc { cfg: VP9EncoderConfig::new().unwrap(), enc: None })
+            Box::new(Enc {
+                cfg: VP9EncoderConfig::new().unwrap(),
+                enc: None,
+            })
         }
 
         fn describe<'a>(&'a self) -> &'a Descr {
@@ -242,9 +245,10 @@ mod encoder_trait {
     impl Encoder for Enc {
         fn validate(&mut self) -> Result<()> {
             if self.enc.is_none() {
-                self.cfg.get_encoder().map(|enc| {
-                    self.enc = Some(enc);
-                }).map_err(|_err| ErrorKind::ConfigurationIncomplete.into())
+                self.cfg
+                    .get_encoder()
+                    .map(|enc| { self.enc = Some(enc); })
+                    .map_err(|_err| ErrorKind::ConfigurationIncomplete.into())
             } else {
                 unimplemented!()
             }
@@ -265,7 +269,7 @@ mod encoder_trait {
             if let Some(p) = enc.get_packet() {
                 match p {
                     VPXPacket::Packet(pkt) => Ok(pkt),
-                    _ => unimplemented!()
+                    _ => unimplemented!(),
                 }
             } else {
                 Err(ErrorKind::MoreDataNeeded.into())
@@ -277,23 +281,25 @@ mod encoder_trait {
                 ("w", Value::U64(v)) => self.cfg.cfg.g_w = v as u32,
                 ("h", Value::U64(v)) => self.cfg.cfg.g_h = v as u32,
                 // ("format", Value::Formaton(f)) => self.format = Some(f),
-                    _ => unimplemented!()
-                }
-
-                Ok(())
+                _ => unimplemented!(),
             }
 
+            Ok(())
         }
+    }
 
-        pub const DUMMY_DESCR: &Des = &Des {
-            descr: Descr {
-                codec: "vp9",
-                name: "vpx",
-                desc: "libvpx VP9 encoder",
-                mime: "video/VP9",
-            }
-        };
+    pub const VP9_DESCR: &Descriptor = &Des {
+        descr: Descr {
+            codec: "vp9",
+            name: "vpx",
+            desc: "libvpx VP9 encoder",
+            mime: "video/VP9",
+        },
+    };
 }
+
+#[cfg(feature = "codec-trait")]
+pub use self::encoder_trait::VP9_DESCR;
 
 #[cfg(test)]
 pub(crate) mod tests {
