@@ -6,7 +6,7 @@ use std::mem;
 use std::ptr;
 use std::rc::Rc;
 
-use data::frame::{Frame, MediaKind, VideoInfo};
+use data::frame::{Frame, VideoInfo};
 use data::frame::{PictureType, new_default_frame};
 use data::pixel::formats::YUV420;
 
@@ -30,7 +30,7 @@ fn frame_from_img(img: vpx_image_t) -> Frame {
         format: Rc::new(*f),
     };
 
-    let mut f = new_default_frame(&MediaKind::Video(v), None);
+    let mut f = new_default_frame(v, None);
 
     let src = img.planes.iter().map(|v| *v as *const u8);
     let linesize = img.stride.iter().map(|l| *l as usize);
