@@ -215,10 +215,8 @@ impl VPXCodec for VP9Encoder {
 #[cfg(feature = "codec-trait")]
 mod encoder_trait {
     use super::*;
-    use std::rc::Rc;
     use codec::encoder::*;
     use codec::error::*;
-    use data::pixel::Formaton;
     use data::value::Value;
 
     struct Des {
