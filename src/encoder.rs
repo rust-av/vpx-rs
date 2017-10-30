@@ -4,7 +4,7 @@ use ffi::vpx::*;
 use std::mem;
 use std::ptr;
 
-use data::frame::{Frame, MediaKind};
+use data::frame::{Frame, MediaKind, FrameBufferConv};
 use data::pixel::Formaton;
 use data::pixel::formats::YUV420;
 use data::packet::Packet;
@@ -105,7 +105,8 @@ fn img_from_frame<'a>(frame: &'a Frame) -> vpx_image {
     }
     // populate the buffers
     for i in 0..frame.buf.count() {
-        img.planes[i] = unsafe { mem::transmute(frame.buf.as_slice(i).unwrap().as_ptr()) };
+        let s: &[u8] = frame.buf.as_slice(i).unwrap();
+        img.planes[i] = unsafe { mem::transmute(s.as_ptr()) };
         img.stride[i] = frame.buf.linesize(i).unwrap() as i32;
     }
 
