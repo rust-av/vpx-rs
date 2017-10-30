@@ -258,8 +258,13 @@ mod encoder_trait {
             None
         }
 
-        fn send_frame(&mut self, _frame: &Frame) -> Result<()> {
-            unimplemented!()
+        fn send_frame(&mut self, frame: &Frame) -> Result<()> {
+            let enc = self.enc.as_mut().unwrap();
+            enc.encode(frame).map_err(|e| {
+                match e {
+                    _ => unimplemented!()
+                }
+            })
         }
 
         fn receive_packet(&mut self) -> Result<Packet> {
