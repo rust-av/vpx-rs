@@ -142,7 +142,7 @@ mod decoder_trait {
                 .map(|f| Arc::new(f))
                 .ok_or(ErrorKind::MoreDataNeeded.into())
         }
-        fn reset(&mut self) -> Result<()> {
+        fn configure(&mut self) -> Result<()> {
             Ok(())
         }
     }

@@ -242,7 +242,7 @@ mod encoder_trait {
     }
 
     impl Encoder for Enc {
-        fn validate(&mut self) -> Result<()> {
+        fn configure(&mut self) -> Result<()> {
             if self.enc.is_none() {
                 self.cfg
                     .get_encoder()
