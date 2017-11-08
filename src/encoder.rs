@@ -4,7 +4,7 @@ use ffi::vpx::*;
 use std::mem;
 use std::ptr;
 
-use data::frame::{ArcFrame, MediaKind, FrameBufferConv};
+use data::frame::{ArcFrame, Frame, MediaKind, FrameBufferConv};
 use data::pixel::Formaton;
 use data::pixel::formats::YUV420;
 use data::packet::Packet;
@@ -95,7 +95,7 @@ fn map_formaton(img: &mut vpx_image, fmt: &Formaton) {
     img.y_chroma_shift = 1;
 }
 
-fn img_from_frame<'a>(frame: &'a ArcFrame) -> vpx_image {
+fn img_from_frame<'a>(frame: &'a Frame) -> vpx_image {
     let mut img: vpx_image = unsafe { mem::zeroed() };
 
     if let MediaKind::Video(ref v) = frame.kind {
@@ -167,7 +167,7 @@ impl VP9Encoder {
     }
 
     // TODO: Cache the image information
-    pub fn encode(&mut self, frame: &ArcFrame) -> Result<(), vpx_codec_err_t> {
+    pub fn encode(&mut self, frame: &Frame) -> Result<(), vpx_codec_err_t> {
         let mut img = img_from_frame(frame);
 
         let ret = unsafe {
@@ -356,7 +356,7 @@ pub(crate) mod tests {
         e
     }
 
-    pub fn setup_frame(w: u32, h: u32, t: &TimeInfo) -> ArcFrame {
+    pub fn setup_frame(w: u32, h: u32, t: &TimeInfo) -> Frame {
         use data::pixel::formats;
         use data::frame::*;
         use std::rc::Rc;
@@ -371,7 +371,6 @@ pub(crate) mod tests {
         new_default_frame(v, Some(*t))
     }
 
-    use std::sync::Arc;
     #[test]
     fn encode() {
         let w = 200;
@@ -391,7 +390,7 @@ pub(crate) mod tests {
         // TODO write some pattern
         for i in 0..100 {
             e.encode(&f).unwrap();
-            if let Some(ref mut t) = Arc::get_mut(&mut f).unwrap().t {
+            if let Some(ref mut t) = f.t {
                 t.pts = Some(i);
             }
             println!("{:#?}", f);

@@ -7,7 +7,7 @@ use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use data::frame::{ArcFrame, VideoInfo};
+use data::frame::{Frame, VideoInfo};
 use data::frame::{PictureType, new_default_frame};
 use data::pixel::formats::YUV420;
 
@@ -18,7 +18,7 @@ pub struct VP9Decoder {
 
 use self::vpx_codec_err_t::*;
 
-fn frame_from_img(img: vpx_image_t) -> ArcFrame {
+fn frame_from_img(img: vpx_image_t) -> Frame {
     use self::vpx_img_fmt_t::*;
     let f = match img.fmt {
         VPX_IMG_FMT_I420 => YUV420,
@@ -36,7 +36,7 @@ fn frame_from_img(img: vpx_image_t) -> ArcFrame {
     let src = img.planes.iter().map(|v| *v as *const u8);
     let linesize = img.stride.iter().map(|l| *l as usize);
 
-    Arc::get_mut(&mut f).unwrap().copy_from_raw_parts(src, linesize);
+    f.copy_from_raw_parts(src, linesize);
     f
 }
 
@@ -83,7 +83,7 @@ impl VP9Decoder {
         }
     }
 
-    pub fn get_frame(&mut self) -> Option<ArcFrame> {
+    pub fn get_frame(&mut self) -> Option<Frame> {
         let img = unsafe { vpx_codec_get_frame(&mut self.ctx, &mut self.iter) };
         mem::forget(img);
 
@@ -138,7 +138,9 @@ mod decoder_trait {
             self.decode(&pkt.data).map_err(|_err| unimplemented!())
         }
         fn receive_frame(&mut self) -> Result<ArcFrame> {
-            self.get_frame().ok_or(ErrorKind::MoreDataNeeded.into())
+            self.get_frame()
+                .map(|f| Arc::new(f))
+                .ok_or(ErrorKind::MoreDataNeeded.into())
         }
         fn reset(&mut self) -> Result<()> {
             Ok(())
@@ -172,7 +174,6 @@ mod tests {
     use super::super::encoder::VPXPacket;
     use data::timeinfo::TimeInfo;
     use data::rational::*;
-    use std::sync::Arc;
     #[test]
     fn decode() {
         let w = 800;
@@ -193,7 +194,7 @@ mod tests {
 
         for i in 0..100 {
             e.encode(&f).unwrap();
-            if let Some(ref mut t) = Arc::get_mut(&mut f).unwrap().t {
+            if let Some(ref mut t) = f.t {
                 t.pts = Some(i);
             }
             println!("{:#?}", f);
