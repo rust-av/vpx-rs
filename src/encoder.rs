@@ -284,6 +284,10 @@ mod encoder_trait {
             match (key, val) {
                 ("w", Value::U64(v)) => self.cfg.cfg.g_w = v as u32,
                 ("h", Value::U64(v)) => self.cfg.cfg.g_h = v as u32,
+                ("timebase", Value::Pair(num, den)) => {
+                    self.cfg.cfg.g_timebase.num = num as i32;
+                    self.cfg.cfg.g_timebase.den = den as i32;
+                },
                 // ("format", Value::Formaton(f)) => self.format = Some(f),
                 _ => unimplemented!(),
             }
@@ -402,6 +406,58 @@ pub(crate) mod tests {
                 } else {
                     out = 1;
                     println!("{:#?}", p.unwrap());
+                }
+            }
+        }
+
+        if out != 1 {
+            panic!("No packet produced");
+        }
+    }
+
+    #[cfg(all(test, feature = "codec-trait"))]
+    #[test]
+    fn encode_codec_trait() {
+        use codec::encoder::*;
+        use codec::error::*;
+        use super::VP9_DESCR;
+        use std::sync::Arc;
+
+        let encoders = Codecs::from_list(&[VP9_DESCR]);
+        let mut ctx = Context::by_name(&encoders, "vp9").unwrap();
+        let w = 200;
+        let h = 200;
+
+        ctx.set_option("w", w as u64).unwrap();
+        ctx.set_option("h", h as u64).unwrap();
+        ctx.set_option("timebase", (1, 1000)).unwrap();
+
+        let t = TimeInfo {
+            pts: Some(0),
+            dts: Some(0),
+            duration: Some(1),
+            timebase: Rational64::new(1, 1000),
+        };
+
+        ctx.configure().unwrap();
+        let mut f = Arc::new(setup_frame(w, h, &t));
+        let mut out = 0;
+        for i in 0..100 {
+            if let Some(ref mut t) = Arc::get_mut(&mut f).unwrap().t {
+                t.pts = Some(i);
+            }
+            ctx.send_frame(&f).unwrap();
+
+            loop {
+                match ctx.receive_packet() {
+                    Ok(p) => {
+                        println!("{:#?}", p);
+                        out = 1
+                    },
+                    Err(e) => match e.kind() {
+                        &ErrorKind::MoreDataNeeded => break,
+                        _ => unimplemented!()
+                    }
                 }
             }
         }
