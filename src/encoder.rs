@@ -189,6 +189,26 @@ impl VP9Encoder {
         }
     }
 
+    pub fn flush(&mut self) -> Result<(), vpx_codec_err_t> {
+        let ret = unsafe {
+             vpx_codec_encode(
+                &mut self.ctx,
+                ptr::null_mut(),
+                0,
+                1,
+                0,
+                VPX_DL_GOOD_QUALITY as u64,
+            )
+        };
+
+        self.iter = ptr::null();
+
+        match ret {
+            VPX_CODEC_OK => Ok(()),
+            _ => Err(ret),
+        }
+    }
+
     pub fn get_packet(&mut self) -> Option<VPXPacket> {
         let pkt = unsafe { vpx_codec_get_cx_data(&mut self.ctx, &mut self.iter) };
 
@@ -278,6 +298,15 @@ mod encoder_trait {
             } else {
                 Err(ErrorKind::MoreDataNeeded.into())
             }
+        }
+
+        fn flush(&mut self) -> Result<()> {
+            let enc = self.enc.as_mut().unwrap();
+            enc.flush().map_err(|e| {
+                match e {
+                    _ => unimplemented!()
+                }
+            })
         }
 
         fn set_option<'a>(&mut self, key: &str, val: Value<'a>) -> Result<()> {
@@ -446,6 +475,8 @@ pub(crate) mod tests {
             if let Some(ref mut t) = Arc::get_mut(&mut f).unwrap().t {
                 t.pts = Some(i);
             }
+
+            println!("Sending {}", i);
             ctx.send_frame(&f).unwrap();
 
             loop {
@@ -458,6 +489,21 @@ pub(crate) mod tests {
                         &ErrorKind::MoreDataNeeded => break,
                         _ => unimplemented!()
                     }
+                }
+            }
+        }
+
+        ctx.flush().unwrap();
+
+        loop {
+            match ctx.receive_packet() {
+                Ok(p) => {
+                    println!("{:#?}", p);
+                    out = 1
+                },
+                Err(e) => match e.kind() {
+                    &ErrorKind::MoreDataNeeded => break,
+                    _ => unimplemented!()
                 }
             }
         }
