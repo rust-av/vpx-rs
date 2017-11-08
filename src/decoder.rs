@@ -183,7 +183,7 @@ mod tests {
             pts: Some(0),
             dts: Some(0),
             duration: Some(1),
-            timebase: Rational32::new(1, 1000),
+            timebase: Rational64::new(1, 1000),
         };
 
         let mut e = enc::setup(w, h, &t);

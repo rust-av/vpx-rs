@@ -343,8 +343,8 @@ pub(crate) mod tests {
         let mut c = VP9EncoderConfig::new().unwrap();
         c.cfg.g_w = w;
         c.cfg.g_h = h;
-        c.cfg.g_timebase.num = *t.timebase.numer();
-        c.cfg.g_timebase.den = *t.timebase.denom();
+        c.cfg.g_timebase.num = *t.timebase.numer() as i32;
+        c.cfg.g_timebase.den = *t.timebase.denom() as i32;
         c.cfg.g_threads = 4;
         c.cfg.g_pass = vpx_enc_pass::VPX_RC_ONE_PASS;
         c.cfg.rc_end_usage = vpx_rc_mode::VPX_CQ;
@@ -380,7 +380,7 @@ pub(crate) mod tests {
             pts: Some(0),
             dts: Some(0),
             duration: Some(1),
-            timebase: Rational32::new(1, 1000),
+            timebase: Rational64::new(1, 1000),
         };
 
         let mut e = setup(w, h, &t);
