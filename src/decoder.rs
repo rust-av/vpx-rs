@@ -11,11 +11,6 @@ use data::frame::{Frame, VideoInfo};
 use data::frame::{PictureType, new_default_frame};
 use data::pixel::formats::YUV420;
 
-pub struct VP9Decoder {
-    pub(crate) ctx: vpx_codec_ctx,
-    pub(crate) iter: vpx_codec_iter_t,
-}
-
 use self::vpx_codec_err_t::*;
 
 fn frame_from_img(img: vpx_image_t) -> Frame {
@@ -40,11 +35,20 @@ fn frame_from_img(img: vpx_image_t) -> Frame {
     f
 }
 
-impl VP9Decoder {
-    pub fn new() -> Result<VP9Decoder, vpx_codec_err_t> {
+use std::marker::PhantomData;
+
+pub struct VP9Decoder<T> {
+    pub(crate) ctx: vpx_codec_ctx,
+    pub(crate) iter: vpx_codec_iter_t,
+    private_data: PhantomData<T>
+}
+
+impl<T> VP9Decoder<T> {
+    pub fn new() -> Result<VP9Decoder<T>, vpx_codec_err_t> {
         let mut dec = VP9Decoder {
             ctx: unsafe { uninitialized() },
             iter: ptr::null(),
+            private_data: PhantomData,
         };
         let cfg = unsafe { zeroed() };
 
@@ -63,13 +67,20 @@ impl VP9Decoder {
         }
     }
 
-    pub fn decode(&mut self, data: &[u8]) -> Result<(), vpx_codec_err_t> {
+    pub fn decode<O>(&mut self, data: &[u8], private: O) -> Result<(), vpx_codec_err_t>
+        where O: Into<Option<T>> {
+        let priv_data = private
+            .into()
+            .map(|v| {
+                Box::into_raw(Box::new(v))
+            })
+            .unwrap_or(ptr::null_mut());
         let ret = unsafe {
             vpx_codec_decode(
                 &mut self.ctx,
                 data.as_ptr(),
                 data.len() as u32,
-                ptr::null_mut(),
+                mem::transmute(priv_data),
                 0,
             )
         };
@@ -78,31 +89,41 @@ impl VP9Decoder {
         self.iter = ptr::null();
 
         match ret {
-            VPX_CODEC_OK => Ok(()),
+            VPX_CODEC_OK => {
+                mem::forget(priv_data);
+                Ok(())
+            },
             _ => Err(ret),
         }
     }
 
-    pub fn get_frame(&mut self) -> Option<Frame> {
+    pub fn get_frame(&mut self) -> Option<(Frame, Option<Box<T>>)> {
         let img = unsafe { vpx_codec_get_frame(&mut self.ctx, &mut self.iter) };
         mem::forget(img);
 
         if img.is_null() {
             None
         } else {
-            let frame = frame_from_img(unsafe { *img });
-            Some(frame)
+            let im = unsafe { *img };
+            let priv_data = if im.user_priv.is_null() {
+                None
+            } else {
+                let p : *mut T = unsafe { mem::transmute(im.user_priv) };
+                Some(unsafe { Box::from_raw(p) })
+            };
+            let frame = frame_from_img(im);
+            Some((frame, priv_data))
         }
     }
 }
 
-impl Drop for VP9Decoder {
+impl<T> Drop for VP9Decoder<T> {
     fn drop(&mut self) {
         unsafe { vpx_codec_destroy(&mut self.ctx) };
     }
 }
 
-impl VPXCodec for VP9Decoder {
+impl<T> VPXCodec for VP9Decoder<T> {
     fn get_context<'a>(&'a mut self) -> &'a mut vpx_codec_ctx {
         &mut self.ctx
     }
@@ -115,6 +136,7 @@ mod decoder_trait {
     use codec::error::*;
     use data::packet::Packet;
     use data::frame::ArcFrame;
+    use data::timeinfo::TimeInfo;
 
     struct Des {
         descr: Descr,
@@ -130,16 +152,19 @@ mod decoder_trait {
         }
     }
 
-    impl Decoder for VP9Decoder {
+    impl Decoder for VP9Decoder<TimeInfo> {
         fn set_extradata(&mut self, _extra: &[u8]) {
             // No-op
         }
         fn send_packet(&mut self, pkt: &Packet) -> Result<()> {
-            self.decode(&pkt.data).map_err(|_err| unimplemented!())
+            self.decode(&pkt.data, pkt.t).map_err(|_err| unimplemented!())
         }
         fn receive_frame(&mut self) -> Result<ArcFrame> {
             self.get_frame()
-                .map(|f| Arc::new(f))
+                .map(|(mut f, t)| {
+                    f.t = t.map(|b| *b).unwrap();
+                    Arc::new(f)
+                })
                 .ok_or(ErrorKind::MoreDataNeeded.into())
         }
         fn configure(&mut self) -> Result<()> {
@@ -165,7 +190,7 @@ mod tests {
     use super::*;
     #[test]
     fn init() {
-        let mut d = VP9Decoder::new().unwrap();
+        let mut d = VP9Decoder::<()>::new().unwrap();
 
         println!("{}", d.error_to_str());
     }
@@ -189,7 +214,7 @@ mod tests {
         let mut e = enc::setup(w, h, &t);
         let mut f = enc::setup_frame(w, h, &t);
 
-        let mut d = VP9Decoder::new().unwrap();
+        let mut d = VP9Decoder::<()>::new().unwrap();
         let mut out = 0;
 
         for i in 0..100 {
@@ -204,7 +229,7 @@ mod tests {
                     break;
                 } else {
                     if let VPXPacket::Packet(ref pkt) = p.unwrap() {
-                        let _ = d.decode(&pkt.data).unwrap();
+                        let _ = d.decode(&pkt.data, None).unwrap();
 
                         // No multiframe expected.
                         if let Some(f) = d.get_frame() {
