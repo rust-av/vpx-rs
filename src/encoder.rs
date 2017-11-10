@@ -47,7 +47,7 @@ impl VPXPacket {
                     ptr::copy_nonoverlapping(mem::transmute(f.buf), p.data.as_mut_ptr(), f.sz);
                     p.data.set_len(f.sz);
                 }
-                p.pts = Some(f.pts);
+                p.t.pts = Some(f.pts);
                 p.is_key = (f.flags & VPX_FRAME_IS_KEY) != 0;
 
                 VPXPacket::Packet(p)
@@ -174,7 +174,7 @@ impl VP9Encoder {
             vpx_codec_encode(
                 &mut self.ctx,
                 &mut img,
-                frame.t.unwrap().pts.unwrap(),
+                frame.t.pts.unwrap(),
                 1,
                 0,
                 VPX_DL_GOOD_QUALITY as u64,
@@ -376,8 +376,8 @@ pub(crate) mod tests {
         let mut c = VP9EncoderConfig::new().unwrap();
         c.cfg.g_w = w;
         c.cfg.g_h = h;
-        c.cfg.g_timebase.num = *t.timebase.numer() as i32;
-        c.cfg.g_timebase.den = *t.timebase.denom() as i32;
+        c.cfg.g_timebase.num = *t.timebase.unwrap().numer() as i32;
+        c.cfg.g_timebase.den = *t.timebase.unwrap().denom() as i32;
         c.cfg.g_threads = 4;
         c.cfg.g_pass = vpx_enc_pass::VPX_RC_ONE_PASS;
         c.cfg.rc_end_usage = vpx_rc_mode::VPX_CQ;
@@ -413,7 +413,7 @@ pub(crate) mod tests {
             pts: Some(0),
             dts: Some(0),
             duration: Some(1),
-            timebase: Rational64::new(1, 1000),
+            timebase: Some(Rational64::new(1, 1000)),
         };
 
         let mut e = setup(w, h, &t);
@@ -423,9 +423,7 @@ pub(crate) mod tests {
         // TODO write some pattern
         for i in 0..100 {
             e.encode(&f).unwrap();
-            if let Some(ref mut t) = f.t {
-                t.pts = Some(i);
-            }
+            f.t.pts = Some(i);
             println!("{:#?}", f);
             loop {
                 let p = e.get_packet();
@@ -465,16 +463,14 @@ pub(crate) mod tests {
             pts: Some(0),
             dts: Some(0),
             duration: Some(1),
-            timebase: Rational64::new(1, 1000),
+            timebase: Some(Rational64::new(1, 1000)),
         };
 
         ctx.configure().unwrap();
         let mut f = Arc::new(setup_frame(w, h, &t));
         let mut out = 0;
         for i in 0..100 {
-            if let Some(ref mut t) = Arc::get_mut(&mut f).unwrap().t {
-                t.pts = Some(i);
-            }
+            Arc::get_mut(&mut f).unwrap().t.pts = Some(i);
 
             println!("Sending {}", i);
             ctx.send_frame(&f).unwrap();

@@ -183,7 +183,7 @@ mod tests {
             pts: Some(0),
             dts: Some(0),
             duration: Some(1),
-            timebase: Rational64::new(1, 1000),
+            timebase: Some(Rational64::new(1, 1000)),
         };
 
         let mut e = enc::setup(w, h, &t);
@@ -194,9 +194,8 @@ mod tests {
 
         for i in 0..100 {
             e.encode(&f).unwrap();
-            if let Some(ref mut t) = f.t {
-                t.pts = Some(i);
-            }
+            f.t.pts = Some(i);
+
             println!("{:#?}", f);
             loop {
                 let p = e.get_packet();
