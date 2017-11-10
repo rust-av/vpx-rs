@@ -245,4 +245,94 @@ mod tests {
             panic!("No frame decoded");
         }
     }
+
+    #[cfg(all(test, feature = "codec-trait"))]
+    #[test]
+    fn decode_codec_trait() {
+        use codec::common::CodecList;
+        use codec::encoder as en;
+        use codec::decoder as de;
+        use codec::error::*;
+        use super::super::encoder::VP9_DESCR as ENC;
+        use super::super::decoder::VP9_DESCR as DEC;
+        use std::sync::Arc;
+
+        let encoders = en::Codecs::from_list(&[ENC]);
+        let decoders = de::Codecs::from_list(&[DEC]);
+        let mut enc = en::Context::by_name(&encoders, "vp9").unwrap();
+        let mut dec = de::Context::by_name(&decoders, "vp9").unwrap();
+        let w = 200;
+        let h = 200;
+
+        enc.set_option("w", w as u64).unwrap();
+        enc.set_option("h", h as u64).unwrap();
+        enc.set_option("timebase", (1, 1000)).unwrap();
+
+        let t = TimeInfo {
+            pts: Some(0),
+            dts: Some(0),
+            duration: Some(1),
+            timebase: Some(Rational64::new(1, 1000)),
+        };
+
+        enc.configure().unwrap();
+        dec.configure().unwrap();
+
+        let mut f = Arc::new(enc::setup_frame(w, h, &t));
+        let mut enc_out = 0;
+        let mut dec_out = 0;
+        for i in 0..100 {
+            Arc::get_mut(&mut f).unwrap().t.pts = Some(i);
+
+            println!("Sending {}", i);
+            enc.send_frame(&f).unwrap();
+
+            loop {
+                match enc.receive_packet() {
+                    Ok(p) => {
+                        println!("{:#?}", p);
+                        enc_out = 1;
+                        dec.send_packet(&p).unwrap();
+
+                        loop {
+                            match dec.receive_frame() {
+                                Ok(f) => {
+                                    println!("{:#?}", f);
+                                    dec_out = 1;
+                                },
+                                Err(e) => match e.kind() {
+                                    &ErrorKind::MoreDataNeeded => break,
+                                    _ => unimplemented!()
+                                }
+                            }
+                        }
+                    },
+                    Err(e) => match e.kind() {
+                        &ErrorKind::MoreDataNeeded => break,
+                        _ => unimplemented!()
+                    }
+                }
+            }
+        }
+
+        enc.flush().unwrap();
+
+        loop {
+            match enc.receive_packet() {
+                Ok(p) => {
+                    println!("{:#?}", p);
+                    enc_out = 1
+                },
+                Err(e) => match e.kind() {
+                    &ErrorKind::MoreDataNeeded => break,
+                    _ => unimplemented!()
+                }
+            }
+        }
+
+        if enc_out != 1 || dec_out != 1 {
+            panic!();
+        }
+    }
+
 }
