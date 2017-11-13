@@ -4,7 +4,7 @@ use ffi::vpx::*;
 use std::mem;
 use std::ptr;
 
-use data::frame::{ArcFrame, Frame, MediaKind, FrameBufferConv};
+use data::frame::{Frame, MediaKind, FrameBufferConv};
 use data::pixel::Formaton;
 use data::pixel::formats::YUV420;
 use data::packet::Packet;
@@ -238,6 +238,7 @@ mod encoder_trait {
     use codec::encoder::*;
     use codec::error::*;
     use data::value::Value;
+    use data::frame::ArcFrame;
 
     struct Des {
         descr: Descr,

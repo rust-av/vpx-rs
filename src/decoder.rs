@@ -5,7 +5,6 @@ use std::mem::{uninitialized, zeroed};
 use std::mem;
 use std::ptr;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use data::frame::{Frame, VideoInfo};
 use data::frame::{PictureType, new_default_frame};
@@ -137,6 +136,7 @@ mod decoder_trait {
     use data::packet::Packet;
     use data::frame::ArcFrame;
     use data::timeinfo::TimeInfo;
+    use std::sync::Arc;
 
     struct Des {
         descr: Descr,
