@@ -96,6 +96,27 @@ impl<T> VP9Decoder<T> {
         }
     }
 
+    pub fn flush(&mut self) -> Result<(), vpx_codec_err_t> {
+        let ret = unsafe {
+             vpx_codec_decode(
+                &mut self.ctx,
+                ptr::null(),
+                0,
+                ptr::null_mut(),
+                0,
+            )
+        };
+
+        self.iter = ptr::null();
+
+        match ret {
+            VPX_CODEC_OK => {
+                Ok(())
+            },
+            _ => Err(ret),
+        }
+    }
+
     pub fn get_frame(&mut self) -> Option<(Frame, Option<Box<T>>)> {
         let img = unsafe { vpx_codec_get_frame(&mut self.ctx, &mut self.iter) };
         mem::forget(img);
@@ -166,6 +187,9 @@ mod decoder_trait {
                     Arc::new(f)
                 })
                 .ok_or(ErrorKind::MoreDataNeeded.into())
+        }
+        fn flush(&mut self) -> Result<()> {
+            self.flush().map_err(|_err| unimplemented!())
         }
         fn configure(&mut self) -> Result<()> {
             Ok(())
