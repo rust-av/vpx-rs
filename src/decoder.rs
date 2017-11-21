@@ -4,7 +4,7 @@ use ffi::vpx::*;
 use std::mem::{uninitialized, zeroed};
 use std::mem;
 use std::ptr;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use data::frame::{Frame, VideoInfo};
 use data::frame::{PictureType, new_default_frame};
@@ -22,7 +22,7 @@ fn frame_from_img(img: vpx_image_t) -> Frame {
         pic_type: PictureType::UNKNOWN,
         width: img.d_w as usize,
         height: img.d_h as usize,
-        format: Rc::new(*f),
+        format: Arc::new(*f),
     };
 
     let mut f = new_default_frame(v, None);

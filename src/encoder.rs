@@ -393,13 +393,13 @@ pub(crate) mod tests {
     pub fn setup_frame(w: u32, h: u32, t: &TimeInfo) -> Frame {
         use data::pixel::formats;
         use data::frame::*;
-        use std::rc::Rc;
+        use std::sync::Arc;
 
         let v = VideoInfo {
             pic_type: PictureType::UNKNOWN,
             width: w as usize,
             height: h as usize,
-            format: Rc::new(*formats::YUV420),
+            format: Arc::new(*formats::YUV420),
         };
 
         new_default_frame(v, Some(*t))
