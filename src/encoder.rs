@@ -81,6 +81,8 @@ pub struct VP9EncoderConfig {
     pub cfg: vpx_codec_enc_cfg,
 }
 
+unsafe impl Send for VP9EncoderConfig {} // TODO: Make sure it cannot be abused
+
 // TODO: Extend
 fn map_formaton(img: &mut vpx_image, fmt: &Formaton) {
     use self::vpx_img_fmt_t::*;
@@ -134,6 +136,8 @@ pub struct VP9Encoder {
     pub(crate) ctx: vpx_codec_ctx_t,
     pub(crate) iter: vpx_codec_iter_t,
 }
+
+unsafe impl Send for VP9Encoder {} // TODO: Make sure it cannot be abused
 
 impl VP9Encoder {
     pub fn new(cfg: &mut VP9EncoderConfig) -> Result<VP9Encoder, vpx_codec_err_t> {

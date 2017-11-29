@@ -42,6 +42,8 @@ pub struct VP9Decoder<T> {
     private_data: PhantomData<T>
 }
 
+unsafe impl<T: Send> Send for VP9Decoder<T> {} // TODO: Make sure it cannot be abused
+
 impl<T> VP9Decoder<T> {
     pub fn new() -> Result<VP9Decoder<T>, vpx_codec_err_t> {
         let mut dec = VP9Decoder {
