@@ -13,6 +13,6 @@ bindgen = "0.30"
 metadeps = "1.1"
 
 [package.metadata.pkg-config]
-vpx = "1.6.0"
+vpx = "1.5.0"
 
 [dependencies]
