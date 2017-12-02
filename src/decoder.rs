@@ -1,3 +1,7 @@
+//! Decoding functionality
+//!
+//!
+
 use common::VPXCodec;
 use ffi::vpx::*;
 
@@ -36,6 +40,7 @@ fn frame_from_img(img: vpx_image_t) -> Frame {
 
 use std::marker::PhantomData;
 
+/// VP9 Decoder
 pub struct VP9Decoder<T> {
     pub(crate) ctx: vpx_codec_ctx,
     pub(crate) iter: vpx_codec_iter_t,
@@ -45,6 +50,12 @@ pub struct VP9Decoder<T> {
 unsafe impl<T: Send> Send for VP9Decoder<T> {} // TODO: Make sure it cannot be abused
 
 impl<T> VP9Decoder<T> {
+    /// Create a new decoder
+    ///
+    /// # Errors
+    ///
+    /// The function may fail if the underlying libvpx does not provide
+    /// the VP9 decoder.
     pub fn new() -> Result<VP9Decoder<T>, vpx_codec_err_t> {
         let mut dec = VP9Decoder {
             ctx: unsafe { uninitialized() },
@@ -68,6 +79,17 @@ impl<T> VP9Decoder<T> {
         }
     }
 
+    /// Feed some compressed data to the encoder
+    ///
+    /// The `data` slice is sent to the decoder alongside the optional
+    /// `private` struct.
+    ///
+    /// The [`get_frame`] method must be called to retrieve the decompressed
+    /// frame, do not call this method again before calling [`get_frame`].
+    ///
+    /// It matches a call to `vpx_codec_decode`.
+    ///
+    /// [`get_frame`]: #method.get_frame
     pub fn decode<O>(&mut self, data: &[u8], private: O) -> Result<(), vpx_codec_err_t>
         where O: Into<Option<T>> {
         let priv_data = private
@@ -98,6 +120,14 @@ impl<T> VP9Decoder<T> {
         }
     }
 
+    /// Notify the decoder to return any pending frame
+    ///
+    /// The [`get_frame`] method must be called to retrieve the decompressed
+    /// frame.
+    ///
+    /// It matches a call to `vpx_codec_decode` with NULL arguments.
+    ///
+    /// [`get_frame`]: #method.get_frame
     pub fn flush(&mut self) -> Result<(), vpx_codec_err_t> {
         let ret = unsafe {
              vpx_codec_decode(
@@ -119,6 +149,11 @@ impl<T> VP9Decoder<T> {
         }
     }
 
+    /// Retrieve decoded frames
+    ///
+    /// Should be called repeatedly until it returns `None`.
+    ///
+    /// It matches a call to `vpx_codec_get_frame`.
     pub fn get_frame(&mut self) -> Option<(Frame, Option<Box<T>>)> {
         let img = unsafe { vpx_codec_get_frame(&mut self.ctx, &mut self.iter) };
         mem::forget(img);
@@ -198,6 +233,10 @@ mod decoder_trait {
         }
     }
 
+
+    /// VP9 Decoder
+    ///
+    /// To be used with [av-codec](https://docs.rs/av-codec) `Context`.
     pub const VP9_DESCR: &Descriptor = &Des {
         descr: Descr {
             codec: "vp9",
