@@ -9,6 +9,7 @@ readme = "README.md"
 keywords = ["libvpx","vp9"]
 
 [features]
+default = ["codec-trait"]
 codec-trait = ["av-codec"]
 
 [dependencies]

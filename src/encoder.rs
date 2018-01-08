@@ -308,7 +308,7 @@ mod encoder_trait {
                 self.cfg
                     .get_encoder()
                     .map(|enc| { self.enc = Some(enc); })
-                    .map_err(|_err| ErrorKind::ConfigurationIncomplete.into())
+                    .map_err(|_err| Error::ConfigurationIncomplete)
             } else {
                 unimplemented!()
             }
@@ -337,7 +337,7 @@ mod encoder_trait {
                     _ => unimplemented!(),
                 }
             } else {
-                Err(ErrorKind::MoreDataNeeded.into())
+                Err(Error::MoreDataNeeded)
             }
         }
 
@@ -525,8 +525,8 @@ pub(crate) mod tests {
                         println!("{:#?}", p);
                         out = 1
                     },
-                    Err(e) => match e.kind() {
-                        &ErrorKind::MoreDataNeeded => break,
+                    Err(e) => match e {
+                        Error::MoreDataNeeded => break,
                         _ => unimplemented!()
                     }
                 }
@@ -541,8 +541,8 @@ pub(crate) mod tests {
                     println!("{:#?}", p);
                     out = 1
                 },
-                Err(e) => match e.kind() {
-                    &ErrorKind::MoreDataNeeded => break,
+                Err(e) => match e {
+                    Error::MoreDataNeeded => break,
                     _ => unimplemented!()
                 }
             }

@@ -223,7 +223,7 @@ mod decoder_trait {
                     f.t = t.map(|b| *b).unwrap();
                     Arc::new(f)
                 })
-                .ok_or(ErrorKind::MoreDataNeeded.into())
+                .ok_or(Error::MoreDataNeeded)
         }
         fn flush(&mut self) -> Result<()> {
             self.flush().map_err(|_err| unimplemented!())
@@ -365,15 +365,15 @@ mod tests {
                                     println!("{:#?}", f);
                                     dec_out = 1;
                                 },
-                                Err(e) => match e.kind() {
-                                    &ErrorKind::MoreDataNeeded => break,
+                                Err(e) => match e {
+                                    Error::MoreDataNeeded => break,
                                     _ => unimplemented!()
                                 }
                             }
                         }
                     },
-                    Err(e) => match e.kind() {
-                        &ErrorKind::MoreDataNeeded => break,
+                    Err(e) => match e {
+                        Error::MoreDataNeeded => break,
                         _ => unimplemented!()
                     }
                 }
@@ -388,8 +388,8 @@ mod tests {
                     println!("{:#?}", p);
                     enc_out = 1
                 },
-                Err(e) => match e.kind() {
-                    &ErrorKind::MoreDataNeeded => break,
+                Err(e) => match e {
+                    Error::MoreDataNeeded => break,
                     _ => unimplemented!()
                 }
             }
