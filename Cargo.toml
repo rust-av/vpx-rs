@@ -14,8 +14,8 @@ codec-trait = ["av-codec"]
 
 [dependencies]
 vpx-sys = { version = "0.1.0", path = "vpx-sys" }
-av-data = { version = "0.1.0", path = "../rust-av/data" }
-av-codec = { version = "0.1.0", path = "../rust-av/codec", optional = true }
+av-data = { version = "0.1.0", git = "https://github.com/rust-av/rust-av" }
+av-codec = { version = "0.1.0", git = "https://github.com/rust-av/rust-av", optional = true }
 
 [workspace]
 members = ["vpx-sys"]
