@@ -277,6 +277,7 @@ mod encoder_trait {
     use super::*;
     use codec::encoder::*;
     use codec::error::*;
+    use data::params::{ CodecParams, MediaKind, VideoInfo };
     use data::value::Value;
     use data::frame::ArcFrame;
 
@@ -362,6 +363,30 @@ mod encoder_trait {
                 _ => unimplemented!(),
             }
 
+            Ok(())
+        }
+
+        fn get_params(&self) -> Result<CodecParams> {
+            use std::sync::Arc;
+            Ok(CodecParams {
+                kind: Some(MediaKind::Video(VideoInfo {
+                    height: self.cfg.cfg.g_h as usize,
+                    width: self.cfg.cfg.g_w as usize,
+                    format: Some(Arc::new(*YUV420)), // TODO: support more formats
+                })),
+                codec_id: Some("vp9".to_owned()),
+                extradata: None,
+                bit_rate: 0, // TODO: expose the information
+                convergence_window: 0,
+                delay: 0
+            })
+        }
+
+        fn set_params(&mut self, params: &CodecParams) -> Result<()> {
+            if let Some(MediaKind::Video(ref info)) = params.kind {
+                self.cfg.cfg.g_w = info.width as u32;
+                self.cfg.cfg.g_h = info.height as u32;
+            }
             Ok(())
         }
     }
