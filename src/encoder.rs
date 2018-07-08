@@ -355,6 +355,8 @@ mod encoder_trait {
             match (key, val) {
                 ("w", Value::U64(v)) => self.cfg.cfg.g_w = v as u32,
                 ("h", Value::U64(v)) => self.cfg.cfg.g_h = v as u32,
+                ("qmin", Value::U64(v)) => self.cfg.cfg.rc_min_quantizer = v as u32,
+                ("qmax", Value::U64(v)) => self.cfg.cfg.rc_max_quantizer = v as u32,
                 ("timebase", Value::Pair(num, den)) => {
                     self.cfg.cfg.g_timebase.num = num as i32;
                     self.cfg.cfg.g_timebase.den = den as i32;
@@ -527,6 +529,8 @@ pub(crate) mod tests {
         ctx.set_option("w", w as u64).unwrap();
         ctx.set_option("h", h as u64).unwrap();
         ctx.set_option("timebase", (1, 1000)).unwrap();
+        ctx.set_option("qmin", 0u64).unwrap();
+        ctx.set_option("qmax", 0u64).unwrap();
 
         let t = TimeInfo {
             pts: Some(0),
