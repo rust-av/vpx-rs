@@ -3,7 +3,7 @@
 //!
 
 use common::VPXCodec;
-use ffi::vpx::*;
+use ffi::*;
 
 use std::mem::{uninitialized, zeroed};
 use std::mem;

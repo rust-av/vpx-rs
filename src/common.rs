@@ -1,5 +1,5 @@
 use std::ffi::CStr;
-use ffi::vpx::*;
+use ffi::*;
 
 pub trait VPXCodec {
     fn get_context<'a>(&'a mut self) -> &'a mut vpx_codec_ctx;
