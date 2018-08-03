@@ -9,8 +9,8 @@ It is a simple [binding][1] and safe abstraction over [libvpx][2].
 The bindings are generated using the headers and libraries that ought to be present in the system.
 
 ## TODO
-- [ ] Simple bindings
-- [ ] Safe abstraction
+- [x] Simple bindings
+- [x] Safe abstraction
 - [ ] Examples
 
 [1]: https://github.com/servo/rust-bindgen
