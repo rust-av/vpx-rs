@@ -23,7 +23,7 @@ pub struct PSNR {
 }
 
 /// Safe wrapper around `vpx_codec_cx_pkt`
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum VPXPacket {
     Packet(Packet),
     Stats(Vec<u8>),
@@ -472,7 +472,7 @@ pub(crate) mod tests {
             format: Arc::new(*formats::YUV420),
         };
 
-        new_default_frame(v, Some(*t))
+        new_default_frame(v, Some(t.clone()))
     }
 
     #[test]
@@ -485,6 +485,7 @@ pub(crate) mod tests {
             dts: Some(0),
             duration: Some(1),
             timebase: Some(Rational64::new(1, 1000)),
+            user_private: None,
         };
 
         let mut e = setup(w, h, &t);
@@ -537,6 +538,7 @@ pub(crate) mod tests {
             dts: Some(0),
             duration: Some(1),
             timebase: Some(Rational64::new(1, 1000)),
+            user_private: None,
         };
 
         ctx.configure().unwrap();

@@ -215,7 +215,7 @@ mod decoder_trait {
             // No-op
         }
         fn send_packet(&mut self, pkt: &Packet) -> Result<()> {
-            self.decode(&pkt.data, pkt.t).map_err(|_err| unimplemented!())
+            self.decode(&pkt.data, pkt.t.clone()).map_err(|_err| unimplemented!())
         }
         fn receive_frame(&mut self) -> Result<ArcFrame> {
             self.get_frame()
@@ -274,6 +274,7 @@ mod tests {
             dts: Some(0),
             duration: Some(1),
             timebase: Some(Rational64::new(1, 1000)),
+            user_private: None,
         };
 
         let mut e = enc::setup(w, h, &t);
@@ -338,6 +339,7 @@ mod tests {
             dts: Some(0),
             duration: Some(1),
             timebase: Some(Rational64::new(1, 1000)),
+            user_private: None,
         };
 
         enc.configure().unwrap();
