@@ -112,11 +112,11 @@ impl<T> VP9Decoder<T> {
         self.iter = ptr::null();
 
         match ret {
-            VPX_CODEC_OK => {
-                mem::forget(priv_data);
-                Ok(())
+            VPX_CODEC_OK => Ok(()),
+            _ => {
+                let _ = unsafe { Box::from_raw(priv_data) };
+                Err(ret)
             },
-            _ => Err(ret),
         }
     }
 
