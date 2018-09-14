@@ -89,7 +89,7 @@ mod tests {
                     if pkt.is_null() {
                         break;
                     } else {
-                        println!("{:#?}", unsafe { *pkt }.kind);
+                        println!("{:#?}", (*pkt).kind);
                         out = 1;
                     }
                 }
