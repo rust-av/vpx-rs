@@ -353,19 +353,64 @@ mod encoder_trait {
 
         fn set_option<'a>(&mut self, key: &str, val: Value<'a>) -> Result<()> {
             match (key, val) {
-                ("w", Value::U64(v)) => self.cfg.cfg.g_w = v as u32,
-                ("h", Value::U64(v)) => self.cfg.cfg.g_h = v as u32,
-                ("qmin", Value::U64(v)) => self.cfg.cfg.rc_min_quantizer = v as u32,
-                ("qmax", Value::U64(v)) => self.cfg.cfg.rc_max_quantizer = v as u32,
+                ("w", Value::U64(v)) => {
+                    self.cfg.cfg.g_w = v as u32;
+                    Ok(())
+                },
+                ("h", Value::U64(v)) => {
+                    self.cfg.cfg.g_h = v as u32;
+                    Ok(())
+                },
+                ("qmin", Value::U64(v)) => {
+                    self.cfg.cfg.rc_min_quantizer = v as u32;
+                    Ok(())
+                },
+                ("qmax", Value::U64(v)) => {
+                    self.cfg.cfg.rc_max_quantizer = v as u32;
+                    Ok(())
+                },
                 ("timebase", Value::Pair(num, den)) => {
                     self.cfg.cfg.g_timebase.num = num as i32;
                     self.cfg.cfg.g_timebase.den = den as i32;
+                    Ok(())
                 },
+                ("lag-in-frames", Value::U64(v)) => {
+                    self.cfg.cfg.g_lag_in_frames = v as u32;
+                    Ok(())
+                },
+                ("cpu-used", Value::U64(v)) => {
+                    self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
+                        x.control(vp8e_enc_control_id::VP8E_SET_CPUUSED, v as i32)
+                            .map_err(|_err| Error::InvalidData)
+                    })
+                }
+                ("auto-alt-ref", Value::U64(v)) => {
+                    self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
+                        x.control(vp8e_enc_control_id::VP8E_SET_ENABLEAUTOALTREF, v as i32)
+                            .map_err(|_err| Error::InvalidData)
+                    })
+                }
+                ("arnr-maxframes", Value::U64(v)) => {
+                    self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
+                        x.control(vp8e_enc_control_id::VP8E_SET_ARNR_MAXFRAMES, v as i32)
+                            .map_err(|_err| Error::InvalidData)
+                    })
+                }
+                ("arnr-strength", Value::U64(v)) => {
+                    self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
+                        x.control(vp8e_enc_control_id::VP8E_SET_ARNR_STRENGTH, v as i32)
+                            .map_err(|_err| Error::InvalidData)
+                    })
+                }
+                ("arnr-type", Value::U64(v)) => {
+                    self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
+                        x.control(vp8e_enc_control_id::VP8E_SET_ARNR_TYPE, v as i32)
+                            .map_err(|_err| Error::InvalidData)
+                    })
+                }
                 // ("format", Value::Formaton(f)) => self.format = Some(f),
                 _ => unimplemented!(),
             }
-
-            Ok(())
         }
 
         fn get_params(&self) -> Result<CodecParams> {
