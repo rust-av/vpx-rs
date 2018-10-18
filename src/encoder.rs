@@ -381,31 +381,31 @@ mod encoder_trait {
                 ("cpu-used", Value::U64(v)) => {
                     self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
                         x.control(vp8e_enc_control_id::VP8E_SET_CPUUSED, v as i32)
-                            .map_err(|_err| Error::InvalidData)
+                            .map_err(|_err| Error::ConfigurationInvalid)
                     })
                 }
                 ("auto-alt-ref", Value::U64(v)) => {
                     self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
                         x.control(vp8e_enc_control_id::VP8E_SET_ENABLEAUTOALTREF, v as i32)
-                            .map_err(|_err| Error::InvalidData)
+                            .map_err(|_err| Error::ConfigurationInvalid)
                     })
                 }
                 ("arnr-maxframes", Value::U64(v)) => {
                     self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
                         x.control(vp8e_enc_control_id::VP8E_SET_ARNR_MAXFRAMES, v as i32)
-                            .map_err(|_err| Error::InvalidData)
+                            .map_err(|_err| Error::ConfigurationInvalid)
                     })
                 }
                 ("arnr-strength", Value::U64(v)) => {
                     self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
                         x.control(vp8e_enc_control_id::VP8E_SET_ARNR_STRENGTH, v as i32)
-                            .map_err(|_err| Error::InvalidData)
+                            .map_err(|_err| Error::ConfigurationInvalid)
                     })
                 }
                 ("arnr-type", Value::U64(v)) => {
                     self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
                         x.control(vp8e_enc_control_id::VP8E_SET_ARNR_TYPE, v as i32)
-                            .map_err(|_err| Error::InvalidData)
+                            .map_err(|_err| Error::ConfigurationInvalid)
                     })
                 }
                 // ("format", Value::Formaton(f)) => self.format = Some(f),
@@ -577,6 +577,7 @@ pub(crate) mod tests {
         ctx.set_option("timebase", (1, 1000)).unwrap();
         ctx.set_option("qmin", 0u64).unwrap();
         ctx.set_option("qmax", 0u64).unwrap();
+        ctx.set_option("lag-in-frames", 0u64).unwrap();
 
         let t = TimeInfo {
             pts: Some(0),
@@ -587,6 +588,13 @@ pub(crate) mod tests {
         };
 
         ctx.configure().unwrap();
+
+        ctx.set_option("cpu-used", 2u64).unwrap();
+        ctx.set_option("auto-alt-ref", 1u64).unwrap();
+        ctx.set_option("arnr-maxframes", 5u64).unwrap();
+        ctx.set_option("arnr-strength", 3u64).unwrap();
+        ctx.set_option("arnr-type", 1u64).unwrap(); 
+
         let mut f = Arc::new(setup_frame(w, h, &t));
         let mut out = 0;
         for i in 0..100 {
