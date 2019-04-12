@@ -19,6 +19,3 @@ av-codec = { version = "0.1.0", git = "https://github.com/rust-av/rust-av", opti
 
 [workspace]
 members = ["vpx-sys"]
-
-[dev-dependencies]
-regex ="0.2"
