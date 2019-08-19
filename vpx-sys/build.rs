@@ -1,10 +1,10 @@
 extern crate bindgen;
 extern crate metadeps;
 
-use std::path::PathBuf;
-use std::io::Write;
 use std::env;
 use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 
 fn format_write(builder: bindgen::Builder) -> String {
     builder
@@ -19,7 +19,8 @@ fn main() {
     let libs = metadeps::probe().unwrap();
     let headers = libs.get("vpx").unwrap().include_paths.clone();
 
-    let mut builder = bindgen::builder().header("data/vpx.h")
+    let mut builder = bindgen::builder()
+        .header("data/vpx.h")
         .default_enum_style(bindgen::EnumVariation::Rust);
 
     for header in headers {

@@ -8,10 +8,10 @@ use ffi::*;
 use std::mem;
 use std::ptr;
 
-use data::frame::{Frame, MediaKind, FrameBufferConv};
-use data::pixel::Formaton;
-use data::pixel::formats::YUV420;
+use data::frame::{Frame, FrameBufferConv, MediaKind};
 use data::packet::Packet;
+use data::pixel::formats::YUV420;
+use data::pixel::Formaton;
 
 use self::vpx_codec_err_t::*;
 
@@ -226,7 +226,7 @@ impl VP9Encoder {
     /// [`get_packet`]: #method.get_packet
     pub fn flush(&mut self) -> Result<(), vpx_codec_err_t> {
         let ret = unsafe {
-             vpx_codec_encode(
+            vpx_codec_encode(
                 &mut self.ctx,
                 ptr::null_mut(),
                 0,
@@ -277,9 +277,9 @@ mod encoder_trait {
     use super::*;
     use codec::encoder::*;
     use codec::error::*;
-    use data::params::{ CodecParams, MediaKind, VideoInfo };
-    use data::value::Value;
     use data::frame::ArcFrame;
+    use data::params::{CodecParams, MediaKind, VideoInfo};
+    use data::value::Value;
 
     struct Des {
         descr: Descr,
@@ -308,7 +308,9 @@ mod encoder_trait {
             if self.enc.is_none() {
                 self.cfg
                     .get_encoder()
-                    .map(|enc| { self.enc = Some(enc); })
+                    .map(|enc| {
+                        self.enc = Some(enc);
+                    })
                     .map_err(|_err| Error::ConfigurationIncomplete)
             } else {
                 unimplemented!()
@@ -322,10 +324,8 @@ mod encoder_trait {
 
         fn send_frame(&mut self, frame: &ArcFrame) -> Result<()> {
             let enc = self.enc.as_mut().unwrap();
-            enc.encode(frame).map_err(|e| {
-                match e {
-                    _ => unimplemented!()
-                }
+            enc.encode(frame).map_err(|e| match e {
+                _ => unimplemented!(),
             })
         }
 
@@ -344,10 +344,8 @@ mod encoder_trait {
 
         fn flush(&mut self) -> Result<()> {
             let enc = self.enc.as_mut().unwrap();
-            enc.flush().map_err(|e| {
-                match e {
-                    _ => unimplemented!()
-                }
+            enc.flush().map_err(|e| match e {
+                _ => unimplemented!(),
             })
         }
 
@@ -356,28 +354,28 @@ mod encoder_trait {
                 ("w", Value::U64(v)) => {
                     self.cfg.cfg.g_w = v as u32;
                     Ok(())
-                },
+                }
                 ("h", Value::U64(v)) => {
                     self.cfg.cfg.g_h = v as u32;
                     Ok(())
-                },
+                }
                 ("qmin", Value::U64(v)) => {
                     self.cfg.cfg.rc_min_quantizer = v as u32;
                     Ok(())
-                },
+                }
                 ("qmax", Value::U64(v)) => {
                     self.cfg.cfg.rc_max_quantizer = v as u32;
                     Ok(())
-                },
+                }
                 ("timebase", Value::Pair(num, den)) => {
                     self.cfg.cfg.g_timebase.num = num as i32;
                     self.cfg.cfg.g_timebase.den = den as i32;
                     Ok(())
-                },
+                }
                 ("lag-in-frames", Value::U64(v)) => {
                     self.cfg.cfg.g_lag_in_frames = v as u32;
                     Ok(())
-                },
+                }
                 ("cpu-used", Value::U64(v)) => {
                     self.enc.as_mut().ok_or(Error::InvalidData).and_then(|x| {
                         x.control(vp8e_enc_control_id::VP8E_SET_CPUUSED, v as i32)
@@ -425,7 +423,7 @@ mod encoder_trait {
                 extradata: None,
                 bit_rate: 0, // TODO: expose the information
                 convergence_window: 0,
-                delay: 0
+                delay: 0,
             })
         }
 
@@ -486,8 +484,8 @@ pub(crate) mod tests {
         e.control(VP8E_SET_CQ_LEVEL, 4).unwrap();
     }
 
-    use data::timeinfo::TimeInfo;
     use data::rational::*;
+    use data::timeinfo::TimeInfo;
     pub fn setup(w: u32, h: u32, t: &TimeInfo) -> VP9Encoder {
         let mut c = VP9EncoderConfig::new().unwrap();
         c.cfg.g_w = w;
@@ -506,8 +504,8 @@ pub(crate) mod tests {
     }
 
     pub fn setup_frame(w: u32, h: u32, t: &TimeInfo) -> Frame {
-        use data::pixel::formats;
         use data::frame::*;
+        use data::pixel::formats;
         use std::sync::Arc;
 
         let v = VideoInfo {
@@ -562,9 +560,9 @@ pub(crate) mod tests {
     #[cfg(all(test, feature = "codec-trait"))]
     #[test]
     fn encode_codec_trait() {
+        use super::VP9_DESCR;
         use codec::encoder::*;
         use codec::error::*;
-        use super::VP9_DESCR;
         use std::sync::Arc;
 
         let encoders = Codecs::from_list(&[VP9_DESCR]);
@@ -593,7 +591,7 @@ pub(crate) mod tests {
         ctx.set_option("auto-alt-ref", 1u64).unwrap();
         ctx.set_option("arnr-maxframes", 5u64).unwrap();
         ctx.set_option("arnr-strength", 3u64).unwrap();
-        ctx.set_option("arnr-type", 1u64).unwrap(); 
+        ctx.set_option("arnr-type", 1u64).unwrap();
 
         let mut f = Arc::new(setup_frame(w, h, &t));
         let mut out = 0;
@@ -608,11 +606,11 @@ pub(crate) mod tests {
                     Ok(p) => {
                         println!("{:#?}", p);
                         out = 1
-                    },
+                    }
                     Err(e) => match e {
                         Error::MoreDataNeeded => break,
-                        _ => unimplemented!()
-                    }
+                        _ => unimplemented!(),
+                    },
                 }
             }
         }
@@ -624,11 +622,11 @@ pub(crate) mod tests {
                 Ok(p) => {
                     println!("{:#?}", p);
                     out = 1
-                },
+                }
                 Err(e) => match e {
                     Error::MoreDataNeeded => break,
-                    _ => unimplemented!()
-                }
+                    _ => unimplemented!(),
+                },
             }
         }
 

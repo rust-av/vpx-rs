@@ -8,8 +8,8 @@ include!(concat!(env!("OUT_DIR"), "/vpx.rs"));
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::mem;
     use std::ffi::CStr;
+    use std::mem;
     #[test]
     fn version() {
         println!("{}", unsafe {

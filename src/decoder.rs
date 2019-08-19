@@ -5,13 +5,13 @@
 use common::VPXCodec;
 use ffi::*;
 
-use std::mem::{uninitialized, zeroed};
 use std::mem;
+use std::mem::{uninitialized, zeroed};
 use std::ptr;
 use std::sync::Arc;
 
+use data::frame::{new_default_frame, PictureType};
 use data::frame::{Frame, VideoInfo};
-use data::frame::{PictureType, new_default_frame};
 use data::pixel::formats::YUV420;
 
 use self::vpx_codec_err_t::*;
@@ -44,7 +44,7 @@ use std::marker::PhantomData;
 pub struct VP9Decoder<T> {
     pub(crate) ctx: vpx_codec_ctx,
     pub(crate) iter: vpx_codec_iter_t,
-    private_data: PhantomData<T>
+    private_data: PhantomData<T>,
 }
 
 unsafe impl<T: Send> Send for VP9Decoder<T> {} // TODO: Make sure it cannot be abused
@@ -91,12 +91,12 @@ impl<T> VP9Decoder<T> {
     ///
     /// [`get_frame`]: #method.get_frame
     pub fn decode<O>(&mut self, data: &[u8], private: O) -> Result<(), vpx_codec_err_t>
-        where O: Into<Option<T>> {
+    where
+        O: Into<Option<T>>,
+    {
         let priv_data = private
             .into()
-            .map(|v| {
-                Box::into_raw(Box::new(v))
-            })
+            .map(|v| Box::into_raw(Box::new(v)))
             .unwrap_or(ptr::null_mut());
         let ret = unsafe {
             vpx_codec_decode(
@@ -116,7 +116,7 @@ impl<T> VP9Decoder<T> {
             _ => {
                 let _ = unsafe { Box::from_raw(priv_data) };
                 Err(ret)
-            },
+            }
         }
     }
 
@@ -129,22 +129,12 @@ impl<T> VP9Decoder<T> {
     ///
     /// [`get_frame`]: #method.get_frame
     pub fn flush(&mut self) -> Result<(), vpx_codec_err_t> {
-        let ret = unsafe {
-             vpx_codec_decode(
-                &mut self.ctx,
-                ptr::null(),
-                0,
-                ptr::null_mut(),
-                0,
-            )
-        };
+        let ret = unsafe { vpx_codec_decode(&mut self.ctx, ptr::null(), 0, ptr::null_mut(), 0) };
 
         self.iter = ptr::null();
 
         match ret {
-            VPX_CODEC_OK => {
-                Ok(())
-            },
+            VPX_CODEC_OK => Ok(()),
             _ => Err(ret),
         }
     }
@@ -165,7 +155,7 @@ impl<T> VP9Decoder<T> {
             let priv_data = if im.user_priv.is_null() {
                 None
             } else {
-                let p : *mut T = unsafe { mem::transmute(im.user_priv) };
+                let p: *mut T = unsafe { mem::transmute(im.user_priv) };
                 Some(unsafe { Box::from_raw(p) })
             };
             let frame = frame_from_img(im);
@@ -186,13 +176,13 @@ impl<T> VPXCodec for VP9Decoder<T> {
     }
 }
 
-#[cfg(feature="codec-trait")]
+#[cfg(feature = "codec-trait")]
 mod decoder_trait {
     use super::*;
     use codec::decoder::*;
     use codec::error::*;
-    use data::packet::Packet;
     use data::frame::ArcFrame;
+    use data::packet::Packet;
     use data::timeinfo::TimeInfo;
     use std::sync::Arc;
 
@@ -215,7 +205,8 @@ mod decoder_trait {
             // No-op
         }
         fn send_packet(&mut self, pkt: &Packet) -> Result<()> {
-            self.decode(&pkt.data, pkt.t.clone()).map_err(|_err| unimplemented!())
+            self.decode(&pkt.data, pkt.t.clone())
+                .map_err(|_err| unimplemented!())
         }
         fn receive_frame(&mut self) -> Result<ArcFrame> {
             self.get_frame()
@@ -233,7 +224,6 @@ mod decoder_trait {
         }
     }
 
-
     /// VP9 Decoder
     ///
     /// To be used with [av-codec](https://docs.rs/av-codec) `Context`.
@@ -247,7 +237,7 @@ mod decoder_trait {
     };
 }
 
-#[cfg(feature="codec-trait")]
+#[cfg(feature = "codec-trait")]
 pub use self::decoder_trait::VP9_DESCR;
 
 #[cfg(test)]
@@ -262,8 +252,8 @@ mod tests {
 
     use super::super::encoder::tests as enc;
     use super::super::encoder::VPXPacket;
-    use data::timeinfo::TimeInfo;
     use data::rational::*;
+    use data::timeinfo::TimeInfo;
     #[test]
     fn decode() {
         let w = 800;
@@ -315,12 +305,12 @@ mod tests {
     #[cfg(all(test, feature = "codec-trait"))]
     #[test]
     fn decode_codec_trait() {
-        use codec::common::CodecList;
-        use codec::encoder as en;
-        use codec::decoder as de;
-        use codec::error::*;
-        use super::super::encoder::VP9_DESCR as ENC;
         use super::super::decoder::VP9_DESCR as DEC;
+        use super::super::encoder::VP9_DESCR as ENC;
+        use codec::common::CodecList;
+        use codec::decoder as de;
+        use codec::encoder as en;
+        use codec::error::*;
         use std::sync::Arc;
 
         let encoders = en::Codecs::from_list(&[ENC]);
@@ -366,18 +356,18 @@ mod tests {
                                 Ok(f) => {
                                     println!("{:#?}", f);
                                     dec_out = 1;
-                                },
+                                }
                                 Err(e) => match e {
                                     Error::MoreDataNeeded => break,
-                                    _ => unimplemented!()
-                                }
+                                    _ => unimplemented!(),
+                                },
                             }
                         }
-                    },
+                    }
                     Err(e) => match e {
                         Error::MoreDataNeeded => break,
-                        _ => unimplemented!()
-                    }
+                        _ => unimplemented!(),
+                    },
                 }
             }
         }
@@ -389,11 +379,11 @@ mod tests {
                 Ok(p) => {
                     println!("{:#?}", p);
                     enc_out = 1
-                },
+                }
                 Err(e) => match e {
                     Error::MoreDataNeeded => break,
-                    _ => unimplemented!()
-                }
+                    _ => unimplemented!(),
+                },
             }
         }
 
