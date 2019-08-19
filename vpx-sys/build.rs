@@ -21,7 +21,7 @@ fn main() {
 
     let mut builder = bindgen::builder()
         .header("data/vpx.h")
-        .default_enum_style(bindgen::EnumVariation::Rust);
+        .default_enum_style(bindgen::EnumVariation::Rust { non_exhaustive: false });
 
     for header in headers {
         builder = builder.clang_arg("-I").clang_arg(header.to_str().unwrap());
