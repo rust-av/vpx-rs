@@ -2,16 +2,16 @@
 //!
 //!
 
-use common::VPXCodec;
-use ffi::*;
+use crate::common::VPXCodec;
+use crate::ffi::*;
 
 use std::mem;
 use std::ptr;
 
-use data::frame::{Frame, FrameBufferConv, MediaKind};
-use data::packet::Packet;
-use data::pixel::formats::YUV420;
-use data::pixel::Formaton;
+use crate::data::frame::{Frame, FrameBufferConv, MediaKind};
+use crate::data::packet::Packet;
+use crate::data::pixel::formats::YUV420;
+use crate::data::pixel::Formaton;
 
 use self::vpx_codec_err_t::*;
 
@@ -130,7 +130,7 @@ impl VP9EncoderConfig {
         let ret = unsafe { vpx_codec_enc_config_default(vpx_codec_vp9_cx(), &mut cfg, 0) };
 
         match ret {
-            VPX_CODEC_OK => Ok(VP9EncoderConfig { cfg: cfg }),
+            VPX_CODEC_OK => Ok(VP9EncoderConfig { cfg }),
             _ => Err(ret),
         }
     }
@@ -167,7 +167,7 @@ impl VP9Encoder {
 
         match ret {
             VPX_CODEC_OK => Ok(VP9Encoder {
-                ctx: ctx,
+                ctx,
                 iter: ptr::null(),
             }),
             _ => Err(ret),
@@ -205,7 +205,7 @@ impl VP9Encoder {
                 frame.t.pts.unwrap(),
                 1,
                 0,
-                VPX_DL_GOOD_QUALITY as u64,
+                u64::from(VPX_DL_GOOD_QUALITY),
             )
         };
 
@@ -232,7 +232,7 @@ impl VP9Encoder {
                 0,
                 1,
                 0,
-                VPX_DL_GOOD_QUALITY as u64,
+                u64::from(VPX_DL_GOOD_QUALITY),
             )
         };
 
@@ -275,11 +275,11 @@ impl VPXCodec for VP9Encoder {
 #[cfg(feature = "codec-trait")]
 mod encoder_trait {
     use super::*;
-    use codec::encoder::*;
-    use codec::error::*;
-    use data::frame::ArcFrame;
-    use data::params::{CodecParams, MediaKind, VideoInfo};
-    use data::value::Value;
+    use crate::codec::encoder::*;
+    use crate::codec::error::*;
+    use crate::data::frame::ArcFrame;
+    use crate::data::params::{CodecParams, MediaKind, VideoInfo};
+    use crate::data::value::Value;
 
     struct Des {
         descr: Descr,
@@ -291,7 +291,7 @@ mod encoder_trait {
     }
 
     impl Descriptor for Des {
-        fn create(&self) -> Box<Encoder> {
+        fn create(&self) -> Box<dyn Encoder> {
             Box::new(Enc {
                 cfg: VP9EncoderConfig::new().unwrap(),
                 enc: None,
@@ -439,7 +439,7 @@ mod encoder_trait {
     /// VP9 Encoder
     ///
     /// To be used with [av-codec](https://docs.rs/av-codec) `Encoder Context`.
-    pub const VP9_DESCR: &Descriptor = &Des {
+    pub const VP9_DESCR: &dyn Descriptor = &Des {
         descr: Descr {
             codec: "vp9",
             name: "vpx",
@@ -484,8 +484,8 @@ pub(crate) mod tests {
         e.control(VP8E_SET_CQ_LEVEL, 4).unwrap();
     }
 
-    use data::rational::*;
-    use data::timeinfo::TimeInfo;
+    use crate::data::rational::*;
+    use crate::data::timeinfo::TimeInfo;
     pub fn setup(w: u32, h: u32, t: &TimeInfo) -> VP9Encoder {
         let mut c = VP9EncoderConfig::new().unwrap();
         c.cfg.g_w = w;
@@ -504,8 +504,8 @@ pub(crate) mod tests {
     }
 
     pub fn setup_frame(w: u32, h: u32, t: &TimeInfo) -> Frame {
-        use data::frame::*;
-        use data::pixel::formats;
+        use crate::data::frame::*;
+        use crate::data::pixel::formats;
         use std::sync::Arc;
 
         let v = VideoInfo {
@@ -561,8 +561,8 @@ pub(crate) mod tests {
     #[test]
     fn encode_codec_trait() {
         use super::VP9_DESCR;
-        use codec::encoder::*;
-        use codec::error::*;
+        use crate::codec::encoder::*;
+        use crate::codec::error::*;
         use std::sync::Arc;
 
         let encoders = Codecs::from_list(&[VP9_DESCR]);
@@ -570,8 +570,8 @@ pub(crate) mod tests {
         let w = 200;
         let h = 200;
 
-        ctx.set_option("w", w as u64).unwrap();
-        ctx.set_option("h", h as u64).unwrap();
+        ctx.set_option("w", u64::from(w)).unwrap();
+        ctx.set_option("h", u64::from(h)).unwrap();
         ctx.set_option("timebase", (1, 1000)).unwrap();
         ctx.set_option("qmin", 0u64).unwrap();
         ctx.set_option("qmax", 0u64).unwrap();

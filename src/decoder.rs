@@ -2,17 +2,17 @@
 //!
 //!
 
-use common::VPXCodec;
-use ffi::*;
+use crate::common::VPXCodec;
+use crate::ffi::*;
 
 use std::mem;
 use std::mem::{uninitialized, zeroed};
 use std::ptr;
 use std::sync::Arc;
 
-use data::frame::{new_default_frame, PictureType};
-use data::frame::{Frame, VideoInfo};
-use data::pixel::formats::YUV420;
+use crate::data::frame::{new_default_frame, PictureType};
+use crate::data::frame::{Frame, VideoInfo};
+use crate::data::pixel::formats::YUV420;
 
 use self::vpx_codec_err_t::*;
 
@@ -179,11 +179,11 @@ impl<T> VPXCodec for VP9Decoder<T> {
 #[cfg(feature = "codec-trait")]
 mod decoder_trait {
     use super::*;
-    use codec::decoder::*;
-    use codec::error::*;
-    use data::frame::ArcFrame;
-    use data::packet::Packet;
-    use data::timeinfo::TimeInfo;
+    use crate::codec::decoder::*;
+    use crate::codec::error::*;
+    use crate::data::frame::ArcFrame;
+    use crate::data::packet::Packet;
+    use crate::data::timeinfo::TimeInfo;
     use std::sync::Arc;
 
     struct Des {
@@ -191,7 +191,7 @@ mod decoder_trait {
     }
 
     impl Descriptor for Des {
-        fn create(&self) -> Box<Decoder> {
+        fn create(&self) -> Box<dyn Decoder> {
             Box::new(VP9Decoder::new().unwrap())
         }
 
@@ -227,7 +227,7 @@ mod decoder_trait {
     /// VP9 Decoder
     ///
     /// To be used with [av-codec](https://docs.rs/av-codec) `Context`.
-    pub const VP9_DESCR: &Descriptor = &Des {
+    pub const VP9_DESCR: &dyn Descriptor = &Des {
         descr: Descr {
             codec: "vp9",
             name: "vpx",
@@ -252,8 +252,8 @@ mod tests {
 
     use super::super::encoder::tests as enc;
     use super::super::encoder::VPXPacket;
-    use data::rational::*;
-    use data::timeinfo::TimeInfo;
+    use crate::data::rational::*;
+    use crate::data::timeinfo::TimeInfo;
     #[test]
     fn decode() {
         let w = 800;
@@ -283,17 +283,15 @@ mod tests {
 
                 if p.is_none() {
                     break;
-                } else {
-                    if let VPXPacket::Packet(ref pkt) = p.unwrap() {
-                        let _ = d.decode(&pkt.data, None).unwrap();
+                } else if let VPXPacket::Packet(ref pkt) = p.unwrap() {
+    d.decode(&pkt.data, None).unwrap();
 
-                        // No multiframe expected.
-                        if let Some(f) = d.get_frame() {
-                            out = 1;
-                            println!("{:#?}", f);
-                        }
-                    }
-                }
+    // No multiframe expected.
+    if let Some(f) = d.get_frame() {
+        out = 1;
+        println!("{:#?}", f);
+    }
+}
             }
         }
 
@@ -307,10 +305,10 @@ mod tests {
     fn decode_codec_trait() {
         use super::super::decoder::VP9_DESCR as DEC;
         use super::super::encoder::VP9_DESCR as ENC;
-        use codec::common::CodecList;
-        use codec::decoder as de;
-        use codec::encoder as en;
-        use codec::error::*;
+        use crate::codec::common::CodecList;
+        use crate::codec::decoder as de;
+        use crate::codec::encoder as en;
+        use crate::codec::error::*;
         use std::sync::Arc;
 
         let encoders = en::Codecs::from_list(&[ENC]);
@@ -320,8 +318,8 @@ mod tests {
         let w = 200;
         let h = 200;
 
-        enc.set_option("w", w as u64).unwrap();
-        enc.set_option("h", h as u64).unwrap();
+        enc.set_option("w", u64::from(w)).unwrap();
+        enc.set_option("h", u64::from(h)).unwrap();
         enc.set_option("timebase", (1, 1000)).unwrap();
 
         let t = TimeInfo {
