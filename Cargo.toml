@@ -14,7 +14,7 @@ codec-trait = ["av-codec"]
 
 [dependencies]
 vpx-sys = { version = "0.1.0", path = "vpx-sys" }
-av-data = { version = "0.1.0" }
+av-data = { version = "0.2.0" }
 av-codec = { version = "0.1.0", optional = true }
 
 [workspace]
