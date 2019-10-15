@@ -9,7 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/vpx.rs"));
 mod tests {
     use super::*;
     use std::ffi::CStr;
-    use std::mem;
+    use std::mem::{self, MaybeUninit};
     #[test]
     fn version() {
         println!("{}", unsafe {
@@ -25,18 +25,17 @@ mod tests {
         let h = 360;
         let align = 32;
         let kf_interval = 10;
-        let mut raw = unsafe { mem::uninitialized() };
-        let mut ctx = unsafe { mem::uninitialized() };
+        let mut raw = MaybeUninit::uninit();
 
-        let ret = unsafe { vpx_img_alloc(&mut raw, vpx_img_fmt::VPX_IMG_FMT_I420, w, h, align) };
+        let ret = unsafe { vpx_img_alloc(raw.as_ptr(), vpx_img_fmt::VPX_IMG_FMT_I420, w, h, align) };
         if ret.is_null() {
             panic!("Image allocation failed");
         }
         mem::forget(ret); // raw and ret are the same
         print!("{:#?}", raw);
 
-        let mut cfg = unsafe { mem::uninitialized() };
-        let mut ret = unsafe { vpx_codec_enc_config_default(vpx_codec_vp9_cx(), &mut cfg, 0) };
+        let mut cfg = MaybeUninit::uninit();
+        let mut ret = unsafe { vpx_codec_enc_config_default(vpx_codec_vp9_cx(), cfg.as_mut_ptr(), 0) };
 
         if ret != vpx_codec_err_t::VPX_CODEC_OK {
             panic!("Default Configuration failed");
@@ -48,9 +47,10 @@ mod tests {
         cfg.g_timebase.den = 30;
         cfg.rc_target_bitrate = 100 * 1014;
 
+        let mut ctx = MaybeUninit::uninit();
         ret = unsafe {
             vpx_codec_enc_init_ver(
-                &mut ctx,
+                ctx.as_mut_ptr(),
                 vpx_codec_vp9_cx(),
                 &mut cfg,
                 0,
@@ -70,8 +70,8 @@ mod tests {
             }
             unsafe {
                 let ret = vpx_codec_encode(
-                    &mut ctx,
-                    &mut raw,
+                    ctx.as_mut_ptr(),
+                    raw.as_mut_ptr(),
                     i,
                     1,
                     flags as i64,
@@ -81,9 +81,9 @@ mod tests {
                     panic!("Encode failed {:?}", ret);
                 }
 
-                let mut iter = mem::zeroed();
+                let mut iter = MaybeUninit::zeroed();
                 loop {
-                    let pkt = vpx_codec_get_cx_data(&mut ctx, &mut iter);
+                    let pkt = vpx_codec_get_cx_data(ctx.as_mut_ptr(), iter.as_mut_ptr());
 
                     if pkt.is_null() {
                         break;
