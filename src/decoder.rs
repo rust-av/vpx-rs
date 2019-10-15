@@ -6,7 +6,7 @@ use crate::common::VPXCodec;
 use crate::ffi::*;
 
 use std::mem;
-use std::mem::{uninitialized, zeroed};
+use std::mem::MaybeUninit;
 use std::ptr;
 use std::sync::Arc;
 
@@ -57,24 +57,24 @@ impl<T> VP9Decoder<T> {
     /// The function may fail if the underlying libvpx does not provide
     /// the VP9 decoder.
     pub fn new() -> Result<VP9Decoder<T>, vpx_codec_err_t> {
-        let mut dec = VP9Decoder {
-            ctx: unsafe { uninitialized() },
+        let mut dec = UninitVP9Decoder {
+            ctx: MaybeUninit::uninit(),
             iter: ptr::null(),
             private_data: PhantomData,
         };
-        let cfg = unsafe { zeroed() };
+        let cfg = MaybeUninit::zeroed();
 
         let ret = unsafe {
             vpx_codec_dec_init_ver(
-                &mut dec.ctx as *mut vpx_codec_ctx,
+                dec.ctx.as_mut_ptr(),
                 vpx_codec_vp9_dx(),
-                &cfg as *const vpx_codec_dec_cfg_t,
+                cfg.as_ptr(),
                 0,
                 VPX_DECODER_ABI_VERSION as i32,
             )
         };
         match ret {
-            VPX_CODEC_OK => Ok(dec),
+            VPX_CODEC_OK => Ok(unsafe { dec.assume_init() }),
             _ => Err(ret),
         }
     }
@@ -173,6 +173,31 @@ impl<T> Drop for VP9Decoder<T> {
 impl<T> VPXCodec for VP9Decoder<T> {
     fn get_context<'a>(&'a mut self) -> &'a mut vpx_codec_ctx {
         &mut self.ctx
+    }
+}
+
+/// A Maybe-Uninit version of `VP9Decoder`, with the same memory layout and that can be safely
+/// converted (with a minimal overhead) once initialized.
+/// A note about abstraction cost: unfortunately it looks like, at 2019-10-16, we don't have this
+/// sort of free abstraction. In this case the overhead is pretty minimal -- 3 vectorized copies
+/// instead of 4, with the rest of the copy performed with a few simple `mov`s. I don't have the
+/// knowledge to firmly assert that transmuting `UninitVP9Decoder` to `VP9Decoder` is not UB, and
+/// at the same time the cost is, IMHO, acceptable. I don't have an idea of what is missing to
+/// allow this optimization -- NVRO? Aliasing information to LLVM? Honestly, dunno.
+struct UninitVP9Decoder<T> {
+    ctx: MaybeUninit<vpx_codec_ctx>,
+    iter: vpx_codec_iter_t,
+    private_data: PhantomData<T>,
+}
+
+impl<T> UninitVP9Decoder<T> {
+    /// Convert a `UninitVP9Decode` to a `VP9Decoder`, assuming that `ctx` has been correctly
+    /// initialized
+    #[inline]
+    unsafe fn assume_init(self) -> VP9Decoder<T> {
+        let Self {ctx, iter, private_data} = self;
+        let ctx = ctx.assume_init();
+        VP9Decoder { ctx, iter, private_data }
     }
 }
 

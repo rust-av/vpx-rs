@@ -5,7 +5,7 @@
 use crate::common::VPXCodec;
 use crate::ffi::*;
 
-use std::mem;
+use std::mem::{self, MaybeUninit};
 use std::ptr;
 
 use crate::data::frame::{Frame, FrameBufferConv, MediaKind};
@@ -126,11 +126,14 @@ fn img_from_frame<'a>(frame: &'a Frame) -> vpx_image {
 impl VP9EncoderConfig {
     /// Create a new default configuration
     pub fn new() -> Result<VP9EncoderConfig, vpx_codec_err_t> {
-        let mut cfg = unsafe { mem::uninitialized() };
-        let ret = unsafe { vpx_codec_enc_config_default(vpx_codec_vp9_cx(), &mut cfg, 0) };
+        let mut cfg = MaybeUninit::uninit();
+        let ret = unsafe { vpx_codec_enc_config_default(vpx_codec_vp9_cx(), cfg.as_mut_ptr(), 0) };
 
         match ret {
-            VPX_CODEC_OK => Ok(VP9EncoderConfig { cfg }),
+            VPX_CODEC_OK => {
+                let cfg = unsafe { cfg.assume_init() };
+                Ok(VP9EncoderConfig { cfg })
+            }
             _ => Err(ret),
         }
     }
@@ -154,10 +157,10 @@ impl VP9Encoder {
     ///
     /// You may use `get_encoder` instead.
     pub fn new(cfg: &mut VP9EncoderConfig) -> Result<VP9Encoder, vpx_codec_err_t> {
-        let mut ctx = unsafe { mem::uninitialized() };
+        let mut ctx = MaybeUninit::uninit();
         let ret = unsafe {
             vpx_codec_enc_init_ver(
-                &mut ctx,
+                ctx.as_mut_ptr(),
                 vpx_codec_vp9_cx(),
                 &mut cfg.cfg,
                 0,
@@ -166,10 +169,13 @@ impl VP9Encoder {
         };
 
         match ret {
-            VPX_CODEC_OK => Ok(VP9Encoder {
-                ctx,
-                iter: ptr::null(),
-            }),
+            VPX_CODEC_OK => {
+                let ctx = unsafe { ctx.assume_init() };
+                Ok(VP9Encoder {
+                    ctx,
+                    iter: ptr::null(),
+                })
+            }
             _ => Err(ret),
         }
     }
