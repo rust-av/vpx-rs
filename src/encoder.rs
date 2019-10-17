@@ -103,7 +103,9 @@ fn map_formaton(img: &mut vpx_image, fmt: &Formaton) {
 }
 
 fn img_from_frame<'a>(frame: &'a Frame) -> vpx_image {
-    let mut img: vpx_image = unsafe { mem::zeroed() };
+    // This is sound because `vpx_image` is a repr(C) struct containing fields that can be
+    // zeroed without causing UB
+    let mut img = unsafe { MaybeUninit::zeroed().assume_init() };
 
     if let MediaKind::Video(ref v) = frame.kind {
         map_formaton(&mut img, &v.format);
