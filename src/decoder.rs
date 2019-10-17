@@ -57,8 +57,11 @@ impl<T> VP9Decoder<T> {
     /// The function may fail if the underlying libvpx does not provide
     /// the VP9 decoder.
     pub fn new() -> Result<VP9Decoder<T>, vpx_codec_err_t> {
-        let mut dec = UninitVP9Decoder {
-            ctx: MaybeUninit::uninit(),
+        // This is sound because `vpx_codec_ctx` is a repr(C) struct without any field that can
+        // cause UB if uninitialized.
+        let ctx = unsafe { MaybeUninit::uninit().assume_init() };
+        let mut dec = VP9Decoder {
+            ctx,
             iter: ptr::null(),
             private_data: PhantomData,
         };
@@ -66,7 +69,7 @@ impl<T> VP9Decoder<T> {
 
         let ret = unsafe {
             vpx_codec_dec_init_ver(
-                dec.ctx.as_mut_ptr(),
+                &mut dec.ctx,
                 vpx_codec_vp9_dx(),
                 cfg.as_ptr(),
                 0,
@@ -74,7 +77,7 @@ impl<T> VP9Decoder<T> {
             )
         };
         match ret {
-            VPX_CODEC_OK => Ok(unsafe { dec.assume_init() }),
+            VPX_CODEC_OK => Ok( dec ),
             _ => Err(ret),
         }
     }
@@ -171,31 +174,6 @@ impl<T> Drop for VP9Decoder<T> {
 impl<T> VPXCodec for VP9Decoder<T> {
     fn get_context<'a>(&'a mut self) -> &'a mut vpx_codec_ctx {
         &mut self.ctx
-    }
-}
-
-/// A Maybe-Uninit version of `VP9Decoder`, with the same memory layout and that can be safely
-/// converted (with a minimal overhead) once initialized.
-/// A note about abstraction cost: unfortunately it looks like, at 2019-10-16, we don't have this
-/// sort of free abstraction. In this case the overhead is pretty minimal -- 3 vectorized copies
-/// instead of 4, with the rest of the copy performed with a few simple `mov`s. I don't have the
-/// knowledge to firmly assert that transmuting `UninitVP9Decoder` to `VP9Decoder` is not UB, and
-/// at the same time the cost is, IMHO, acceptable. I don't have an idea of what is missing to
-/// allow this optimization -- NVRO? Aliasing information to LLVM? Honestly, dunno.
-struct UninitVP9Decoder<T> {
-    ctx: MaybeUninit<vpx_codec_ctx>,
-    iter: vpx_codec_iter_t,
-    private_data: PhantomData<T>,
-}
-
-impl<T> UninitVP9Decoder<T> {
-    /// Convert a `UninitVP9Decode` to a `VP9Decoder`, assuming that `ctx` has been correctly
-    /// initialized
-    #[inline]
-    unsafe fn assume_init(self) -> VP9Decoder<T> {
-        let Self {ctx, iter, private_data} = self;
-        let ctx = ctx.assume_init();
-        VP9Decoder { ctx, iter, private_data }
     }
 }
 
