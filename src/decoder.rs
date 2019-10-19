@@ -146,8 +146,6 @@ impl<T> VP9Decoder<T> {
     /// It matches a call to `vpx_codec_get_frame`.
     pub fn get_frame(&mut self) -> Option<(Frame, Option<Box<T>>)> {
         let img = unsafe { vpx_codec_get_frame(&mut self.ctx, &mut self.iter) };
-        mem::forget(img);
-
         if img.is_null() {
             None
         } else {
