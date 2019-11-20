@@ -9,7 +9,7 @@ repository = "https://github.com/rust-av/vpx-rs"
 build = "build.rs"
 
 [build-dependencies]
-bindgen = "0.51"
+bindgen = "0.52"
 metadeps = "1.1"
 
 [package.metadata.pkg-config]
