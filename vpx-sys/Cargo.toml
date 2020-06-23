@@ -10,9 +10,9 @@ build = "build.rs"
 
 [build-dependencies]
 bindgen = "0.52"
-metadeps = "1.1"
+system-deps = "1.3"
 
-[package.metadata.pkg-config]
+[package.metadata.system-deps]
 vpx = "1.5.0"
 
 [dependencies]

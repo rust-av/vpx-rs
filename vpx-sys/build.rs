@@ -1,5 +1,5 @@
 extern crate bindgen;
-extern crate metadeps;
+extern crate system_deps;
 
 use std::env;
 use std::fs::File;
@@ -16,7 +16,7 @@ fn format_write(builder: bindgen::Builder) -> String {
 }
 
 fn main() {
-    let libs = metadeps::probe().unwrap();
+    let libs = system_deps::Config::new().probe().unwrap();
     let headers = libs.get("vpx").unwrap().include_paths.clone();
 
     let mut builder =
