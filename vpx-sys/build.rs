@@ -19,9 +19,12 @@ fn main() {
     let libs = metadeps::probe().unwrap();
     let headers = libs.get("vpx").unwrap().include_paths.clone();
 
-    let mut builder = bindgen::builder()
-        .header("data/vpx.h")
-        .default_enum_style(bindgen::EnumVariation::Rust { non_exhaustive: false });
+    let mut builder =
+        bindgen::builder()
+            .header("data/vpx.h")
+            .default_enum_style(bindgen::EnumVariation::Rust {
+                non_exhaustive: false,
+            });
 
     for header in headers {
         builder = builder.clang_arg("-I").clang_arg(header.to_str().unwrap());
