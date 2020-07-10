@@ -33,10 +33,10 @@ pub enum VPXPacket {
 }
 
 fn to_buffer(buf: vpx_fixed_buf_t) -> Vec<u8> {
-    let mut v: Vec<u8> = Vec::with_capacity(buf.sz);
+    let mut v: Vec<u8> = Vec::with_capacity(buf.sz as usize);
     unsafe {
-        ptr::copy_nonoverlapping(mem::transmute(buf.buf), v.as_mut_ptr(), buf.sz);
-        v.set_len(buf.sz);
+        ptr::copy_nonoverlapping(mem::transmute(buf.buf), v.as_mut_ptr(), buf.sz as usize);
+        v.set_len(buf.sz as usize);
     }
     v
 }
@@ -47,10 +47,14 @@ impl VPXPacket {
         match pkt.kind {
             VPX_CODEC_CX_FRAME_PKT => {
                 let f = unsafe { pkt.data.frame };
-                let mut p = Packet::with_capacity(f.sz);
+                let mut p = Packet::with_capacity(f.sz as usize);
                 unsafe {
-                    ptr::copy_nonoverlapping(mem::transmute(f.buf), p.data.as_mut_ptr(), f.sz);
-                    p.data.set_len(f.sz);
+                    ptr::copy_nonoverlapping(
+                        mem::transmute(f.buf),
+                        p.data.as_mut_ptr(),
+                        f.sz as usize,
+                    );
+                    p.data.set_len(f.sz as usize);
                 }
                 p.t.pts = Some(f.pts);
                 p.is_key = (f.flags & VPX_FRAME_IS_KEY) != 0;
