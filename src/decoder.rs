@@ -77,7 +77,7 @@ impl<T> VP9Decoder<T> {
             )
         };
         match ret {
-            VPX_CODEC_OK => Ok( dec ),
+            VPX_CODEC_OK => Ok(dec),
             _ => Err(ret),
         }
     }
@@ -285,14 +285,14 @@ mod tests {
                 if p.is_none() {
                     break;
                 } else if let VPXPacket::Packet(ref pkt) = p.unwrap() {
-    d.decode(&pkt.data, None).unwrap();
+                    d.decode(&pkt.data, None).unwrap();
 
-    // No multiframe expected.
-    if let Some(f) = d.get_frame() {
-        out = 1;
-        println!("{:#?}", f);
-    }
-}
+                    // No multiframe expected.
+                    if let Some(f) = d.get_frame() {
+                        out = 1;
+                        println!("{:#?}", f);
+                    }
+                }
             }
         }
 
@@ -390,5 +390,4 @@ mod tests {
             panic!();
         }
     }
-
 }
