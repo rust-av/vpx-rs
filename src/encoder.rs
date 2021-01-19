@@ -516,7 +516,6 @@ pub(crate) mod tests {
     }
 
     pub fn setup_frame(w: u32, h: u32, t: &TimeInfo) -> Frame {
-        use crate::data::frame::FrameType;
         use crate::data::frame::*;
         use crate::data::pixel::formats;
         use std::sync::Arc;
