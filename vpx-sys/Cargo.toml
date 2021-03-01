@@ -2,6 +2,7 @@
 name = "vpx-sys"
 version = "0.1.1"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
+edition = "2018"
 license = "MIT"
 description = "FFI bindings to vpx"
 repository = "https://github.com/rust-av/vpx-rs"
