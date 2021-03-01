@@ -27,6 +27,6 @@ jobs:
     - name: Run tests
       run: |
         export PKG_CONFIG_PATH=$HOME/vpx_dir/lib/pkgconfig:$PKG_CONFIG_PATH
-        cargo test --all-features
-        cargo test --no-default-features
+        cargo test --workspace --all-features
+        cargo test --workspace --no-default-features
         cargo doc
