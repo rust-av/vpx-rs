@@ -2,6 +2,7 @@
 name = "libvpx"
 version = "0.1.1"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
+edition = "2018"
 license = "MIT"
 description = "libvpx bindings"
 repository = "https://github.com/rust-av/vpx-rs"
