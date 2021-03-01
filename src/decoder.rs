@@ -5,7 +5,6 @@
 use crate::common::VPXCodec;
 use crate::ffi::*;
 
-use std::mem;
 use std::mem::MaybeUninit;
 use std::ptr;
 use std::sync::Arc;
@@ -112,7 +111,7 @@ impl<T> VP9Decoder<T> {
                 &mut self.ctx,
                 data.as_ptr(),
                 data.len() as u32,
-                mem::transmute(priv_data),
+                priv_data as *mut std::ffi::c_void,
                 0,
             )
         };
@@ -162,7 +161,7 @@ impl<T> VP9Decoder<T> {
             let priv_data = if im.user_priv.is_null() {
                 None
             } else {
-                let p: *mut T = unsafe { mem::transmute(im.user_priv) };
+                let p = im.user_priv as *mut T;
                 Some(unsafe { Box::from_raw(p) })
             };
             let frame = frame_from_img(im);
@@ -178,7 +177,7 @@ impl<T> Drop for VP9Decoder<T> {
 }
 
 impl<T> VPXCodec for VP9Decoder<T> {
-    fn get_context<'a>(&'a mut self) -> &'a mut vpx_codec_ctx {
+    fn get_context(&mut self) -> &mut vpx_codec_ctx {
         &mut self.ctx
     }
 }
@@ -202,7 +201,7 @@ mod decoder_trait {
             Box::new(VP9Decoder::new().unwrap())
         }
 
-        fn describe<'a>(&'a self) -> &'a Descr {
+        fn describe(&self) -> &Descr {
             &self.descr
         }
     }
