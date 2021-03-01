@@ -62,27 +62,28 @@ impl<T> VP9Decoder<T> {
     /// The function may fail if the underlying libvpx does not provide
     /// the VP9 decoder.
     pub fn new() -> Result<VP9Decoder<T>, vpx_codec_err_t> {
-        // This is sound because `vpx_codec_ctx` is a repr(C) struct without any field that can
-        // cause UB if uninitialized.
-        let ctx = unsafe { MaybeUninit::uninit().assume_init() };
-        let mut dec = VP9Decoder {
-            ctx,
-            iter: ptr::null(),
-            private_data: PhantomData,
-        };
+        let mut ctx = MaybeUninit::uninit();
         let cfg = MaybeUninit::zeroed();
 
         let ret = unsafe {
             vpx_codec_dec_init_ver(
-                &mut dec.ctx,
+                ctx.as_mut_ptr(),
                 vpx_codec_vp9_dx(),
                 cfg.as_ptr(),
                 0,
                 VPX_DECODER_ABI_VERSION as i32,
             )
         };
+
         match ret {
-            VPX_CODEC_OK => Ok(dec),
+            VPX_CODEC_OK => {
+                let ctx = unsafe { ctx.assume_init() };
+                Ok(VP9Decoder {
+                    ctx,
+                    iter: ptr::null(),
+                    private_data: PhantomData,
+                })
+            },
             _ => Err(ret),
         }
     }
