@@ -28,7 +28,7 @@ mod tests {
         let mut raw = MaybeUninit::uninit();
 
         let ret =
-            unsafe { vpx_img_alloc(raw.as_ptr(), vpx_img_fmt::VPX_IMG_FMT_I420, w, h, align) };
+            unsafe { vpx_img_alloc(raw.as_mut_ptr(), vpx_img_fmt::VPX_IMG_FMT_I420, w, h, align) };
         if ret.is_null() {
             panic!("Image allocation failed");
         }
@@ -42,6 +42,8 @@ mod tests {
         if ret != vpx_codec_err_t::VPX_CODEC_OK {
             panic!("Default Configuration failed");
         }
+
+        let mut cfg = unsafe { cfg.assume_init() };
 
         cfg.g_w = w;
         cfg.g_h = h;
