@@ -5,7 +5,7 @@
 use crate::common::VPXCodec;
 use crate::ffi::*;
 
-use std::mem::{self, MaybeUninit};
+use std::mem::MaybeUninit;
 use std::ptr;
 
 use crate::data::frame::{Frame, FrameBufferConv, MediaKind};
@@ -35,7 +35,7 @@ pub enum VPXPacket {
 fn to_buffer(buf: vpx_fixed_buf_t) -> Vec<u8> {
     let mut v: Vec<u8> = Vec::with_capacity(buf.sz as usize);
     unsafe {
-        ptr::copy_nonoverlapping(mem::transmute(buf.buf), v.as_mut_ptr(), buf.sz as usize);
+        ptr::copy_nonoverlapping(buf.buf as *const u8, v.as_mut_ptr(), buf.sz as usize);
         v.set_len(buf.sz as usize);
     }
     v
@@ -50,7 +50,7 @@ impl VPXPacket {
                 let mut p = Packet::with_capacity(f.sz as usize);
                 unsafe {
                     ptr::copy_nonoverlapping(
-                        mem::transmute(f.buf),
+                        f.buf as *const u8,
                         p.data.as_mut_ptr(),
                         f.sz as usize,
                     );
@@ -106,7 +106,7 @@ fn map_formaton(img: &mut vpx_image, fmt: &Formaton) {
     img.y_chroma_shift = 1;
 }
 
-fn img_from_frame<'a>(frame: &'a Frame) -> vpx_image {
+fn img_from_frame(frame: &Frame) -> vpx_image {
     // This is sound because `vpx_image` is a repr(C) struct containing fields that can be
     // zeroed without causing UB
     let mut img = unsafe { MaybeUninit::zeroed().assume_init() };
@@ -119,7 +119,7 @@ fn img_from_frame<'a>(frame: &'a Frame) -> vpx_image {
     // populate the buffers
     for i in 0..frame.buf.count() {
         let s: &[u8] = frame.buf.as_slice(i).unwrap();
-        img.planes[i] = unsafe { mem::transmute(s.as_ptr()) };
+        img.planes[i] = s.as_ptr() as *mut u8;
         img.stride[i] = frame.buf.linesize(i).unwrap() as i32;
     }
 
@@ -168,7 +168,7 @@ impl VP9Encoder {
             vpx_codec_enc_init_ver(
                 ctx.as_mut_ptr(),
                 vpx_codec_vp9_cx(),
-                &mut cfg.cfg,
+                &cfg.cfg,
                 0,
                 VPX_ENCODER_ABI_VERSION as i32,
             )
@@ -208,12 +208,12 @@ impl VP9Encoder {
     ///
     /// [`get_packet`]: #method.get_packet
     pub fn encode(&mut self, frame: &Frame) -> Result<(), vpx_codec_err_t> {
-        let mut img = img_from_frame(frame);
+        let img = img_from_frame(frame);
 
         let ret = unsafe {
             vpx_codec_encode(
                 &mut self.ctx,
-                &mut img,
+                &img,
                 frame.t.pts.unwrap(),
                 1,
                 0,
@@ -279,7 +279,7 @@ impl Drop for VP9Encoder {
 }
 
 impl VPXCodec for VP9Encoder {
-    fn get_context<'a>(&'a mut self) -> &'a mut vpx_codec_ctx {
+    fn get_context(&mut self) -> &mut vpx_codec_ctx {
         &mut self.ctx
     }
 }
@@ -310,7 +310,7 @@ mod encoder_trait {
             })
         }
 
-        fn describe<'a>(&'a self) -> &'a Descr {
+        fn describe(&self) -> &Descr {
             &self.descr
         }
     }
