@@ -17,7 +17,7 @@ fn format_write(builder: bindgen::Builder) -> String {
 
 fn main() {
     let libs = system_deps::Config::new().probe().unwrap();
-    let headers = libs.get("vpx").unwrap().include_paths.clone();
+    let headers = libs.get_by_name("vpx").unwrap().include_paths.clone();
 
     let mut builder =
         bindgen::builder()
