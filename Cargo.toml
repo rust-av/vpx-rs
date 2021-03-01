@@ -1,6 +1,6 @@
 [package]
 name = "libvpx"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "libvpx bindings"
@@ -13,9 +13,9 @@ default = ["codec-trait"]
 codec-trait = ["av-codec"]
 
 [dependencies]
-vpx-sys = { version = "0.1.0", path = "vpx-sys" }
+vpx-sys = { version = "0.1.1", path = "vpx-sys" }
 av-data = { version = "0.3.0" }
-av-codec = { version = "0.2.0", optional = true }
+av-codec = { version = "0.2.2", optional = true }
 
 [workspace]
 members = ["vpx-sys"]
