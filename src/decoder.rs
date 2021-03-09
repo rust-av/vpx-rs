@@ -17,30 +17,37 @@ use self::vpx_codec_err_t::*;
 
 fn frame_from_img(img: vpx_image_t) -> Frame {
     use self::vpx_img_fmt_t::*;
-    let f = match img.fmt {
+
+    let format = match img.fmt {
         VPX_IMG_FMT_I420 => YUV420,
         _ => panic!("TODO: support more pixel formats"),
     };
-    let v = VideoInfo::new(
+    let video = VideoInfo::new(
         img.d_w as usize,
         img.d_h as usize,
         false,
         FrameType::OTHER,
-        Arc::new(*f),
+        Arc::new(*format),
     );
 
-    let mut f = new_default_frame(v, None);
+    let mut frame = new_default_frame(video, None);
 
     let src = img
         .planes
         .iter()
         .zip(img.stride.iter())
-        .map(|(v, l)| unsafe { std::slice::from_raw_parts(*v as *const u8, *l as usize) });
+        .zip(format.iter())
+        .map(|((plane, line), chromaton)| unsafe {
+            std::slice::from_raw_parts(
+                *plane as *const u8,
+                *line as usize * chromaton.map(|c| c.get_height(img.h as usize)).unwrap_or(0)
+            )
+        });
 
-    let linesize = img.stride.iter().map(|l| *l as usize);
+    let linesize = img.stride.iter().map(|line| *line as usize);
 
-    f.copy_from_slice(src, linesize);
-    f
+    frame.copy_from_slice(src, linesize);
+    frame
 }
 
 use std::marker::PhantomData;
