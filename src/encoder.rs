@@ -6,6 +6,7 @@ use crate::common::VPXCodec;
 use crate::ffi::*;
 
 use std::mem::MaybeUninit;
+use std::os::raw::c_ulong;
 use std::ptr;
 
 use crate::data::frame::{Frame, FrameBufferConv, MediaKind};
@@ -217,7 +218,7 @@ impl VP9Encoder {
                 frame.t.pts.unwrap(),
                 1,
                 0,
-                u64::from(VPX_DL_GOOD_QUALITY),
+                c_ulong::from(VPX_DL_GOOD_QUALITY),
             )
         };
 
@@ -244,7 +245,7 @@ impl VP9Encoder {
                 0,
                 1,
                 0,
-                u64::from(VPX_DL_GOOD_QUALITY),
+                c_ulong::from(VPX_DL_GOOD_QUALITY),
             )
         };
 
