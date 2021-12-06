@@ -10,6 +10,7 @@ mod tests {
     use super::*;
     use std::ffi::CStr;
     use std::mem::{self, MaybeUninit};
+    use std::os::raw::c_ulong;
     #[test]
     fn version() {
         println!("{}", unsafe {
@@ -78,8 +79,8 @@ mod tests {
                     raw.as_mut_ptr(),
                     i,
                     1,
-                    flags as i64,
-                    VPX_DL_GOOD_QUALITY as u64,
+                    flags as vpx_enc_frame_flags_t,
+                    VPX_DL_GOOD_QUALITY as c_ulong,
                 );
                 if ret != vpx_codec_err_t::VPX_CODEC_OK {
                     panic!("Encode failed {:?}", ret);
