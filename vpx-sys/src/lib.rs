@@ -33,7 +33,8 @@ mod tests {
         if ret.is_null() {
             panic!("Image allocation failed");
         }
-        mem::forget(ret); // raw and ret are the same
+        #[allow(clippy::forget_copy)]
+        mem::forget(ret); // raw and ret are the same (ret does not implement Drop trait)
         print!("{:#?}", raw);
 
         let mut cfg = MaybeUninit::uninit();
@@ -57,7 +58,7 @@ mod tests {
             vpx_codec_enc_init_ver(
                 ctx.as_mut_ptr(),
                 vpx_codec_vp9_cx(),
-                &mut cfg,
+                &cfg,
                 0,
                 VPX_ENCODER_ABI_VERSION as i32,
             )

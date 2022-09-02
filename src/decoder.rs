@@ -297,9 +297,7 @@ mod tests {
             loop {
                 let p = e.get_packet();
 
-                if p.is_none() {
-                    break;
-                } else if let VPXPacket::Packet(ref pkt) = p.unwrap() {
+                if let Some(VPXPacket::Packet(ref pkt)) = p {
                     d.decode(&pkt.data, None).unwrap();
 
                     // No multiframe expected.
@@ -307,6 +305,8 @@ mod tests {
                         out = 1;
                         println!("{:#?}", f);
                     }
+                } else {
+                    break;
                 }
             }
         }
