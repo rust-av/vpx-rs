@@ -10,7 +10,7 @@ repository = "https://github.com/rust-av/vpx-rs"
 build = "build.rs"
 
 [build-dependencies]
-bindgen = "0.60"
+bindgen = "0.63"
 system-deps = "6.0"
 
 [package.metadata.system-deps]
