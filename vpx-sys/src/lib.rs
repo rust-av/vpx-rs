@@ -9,7 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/vpx.rs"));
 mod tests {
     use super::*;
     use std::ffi::CStr;
-    use std::mem::{self, MaybeUninit};
+    use std::mem::MaybeUninit;
     use std::os::raw::c_ulong;
     #[test]
     fn version() {
@@ -33,8 +33,7 @@ mod tests {
         if ret.is_null() {
             panic!("Image allocation failed");
         }
-        #[allow(clippy::forget_copy)]
-        mem::forget(ret); // raw and ret are the same (ret does not implement Drop trait)
+
         print!("{:#?}", raw);
 
         let mut cfg = MaybeUninit::uninit();
