@@ -130,7 +130,9 @@ impl<T> VP9Decoder<T> {
         match ret {
             VPX_CODEC_OK => Ok(()),
             _ => {
-                let _ = unsafe { Box::from_raw(priv_data) };
+                if !priv_data.is_null() {
+                    let _ = unsafe { Box::from_raw(priv_data) };
+                }
                 Err(ret)
             }
         }
